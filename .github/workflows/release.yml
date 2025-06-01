@@ -152,6 +152,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: releases/PC_CLEANER_${{ env.VERSION }}.exe
-          asset_name: PC_CLEANER_${{ env.VERSION }}.exe
+          asset_path: releases/PC_CLEANER.exe
+          asset_name: PC_CLEANER.exe
           asset_content_type: application/octet-stream
