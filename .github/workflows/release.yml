@@ -89,7 +89,12 @@ jobs:
       - name: Extract VERSION from config.py
         id: get_version
         run: |
-          for /f "tokens=2 delims==" %a in ('findstr /R "^VERSION[ ]*=" src\config.py') do set "VERSION=%a"
+          set VERSION=
+          for /f "tokens=2 delims== " %%a in ('findstr /R "^VERSION[ ]*=" src\config.py') do set "VERSION=%%a"
+          if not defined VERSION (
+            echo Failed to extract VERSION from src/config.py
+            exit /b 1
+          )
           set "VERSION=%VERSION: =%"
           set "VERSION=%VERSION:\"=%"
           echo Extracted VERSION: %VERSION%
