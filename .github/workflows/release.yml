@@ -8,7 +8,6 @@ on:
       - 'src/**'
       - 'requirements.txt'
       - 'main.py'
-
 jobs:
   build-and-release:
     runs-on: windows-latest
@@ -41,14 +40,8 @@ jobs:
           for /f "tokens=2 delims==" %a in ('findstr /R "^VERSION[ ]*=" src\config.py') do set "VERSION=%a"
           set "VERSION=%VERSION: =%"
           set "VERSION=%VERSION:\"=%"
-          echo Extracted VERSION: %VERSION%
-          echo VERSION=%VERSION%>>%GITHUB_ENV%
+          echo VERSION=%VERSION% >> $env:GITHUB_ENV
         shell: cmd
-
-      - name: Debug VERSION
-        run: |
-          echo VERSION from env: ${{ env.VERSION }}
-        shell: bash
 
       - name: Check if tag exists and create if not
         run: |
