@@ -5,7 +5,7 @@ VERSION = "v1.0.0"
 
 def get_temp_dirs() -> List[Tuple[str, str, str, bool]]:
     temp_dirs: List[Tuple[str, str, str, bool]] = [
-        #* Without confirmation
+        # Without confirmation (False)
         ("System Temp", os.path.join(os.getenv('SystemRoot', 'C:\\Windows'), 'Temp'), 
             "Temporary system files", False),
         ("User Temp", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'Temp'),
@@ -33,7 +33,7 @@ def get_temp_dirs() -> List[Tuple[str, str, str, bool]]:
         ("Spotify Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'Spotify', 'Data'),
             "Spotify data cache", False),
         
-        #! With confirmation
+        # With confirmation (True)
         ("NVIDIA GL Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'NVIDIA', 'GLCache'),
             "NVIDIA OpenGL cache (may cause temporary shader recompilation)", True),
         ("NVIDIA DX Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'NVIDIA', 'DXCache'),
