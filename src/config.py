@@ -33,7 +33,7 @@ def get_temp_dirs() -> List[Tuple[str, str, str, bool]]:
         ("Spotify Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'Spotify', 'Data'),
             "Spotify data cache", False),
         
-        #! With confirmation (True)
+        # With confirmation (True)
         ("NVIDIA GL Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'NVIDIA', 'GLCache'),
             "NVIDIA OpenGL cache (may cause temporary shader recompilation)", True),
         ("NVIDIA DX Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'NVIDIA', 'DXCache'),
