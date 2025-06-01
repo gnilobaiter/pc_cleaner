@@ -132,7 +132,7 @@ jobs:
       - name: Move EXE
         run: |
           mkdir releases
-          move dist\PC_CLEANER.exe releases\PC_CLEANER_${{ env.VERSION }}.exe
+          move dist\PC_CLEANER.exe releases\PC_CLEANER.exe
         shell: cmd
 
       - name: Create Release

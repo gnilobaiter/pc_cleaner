@@ -1,7 +1,7 @@
 import os
 from typing import List, Tuple
 
-VERSION = "v1.0.0"
+VERSION = "v1.0.1"
 
 def get_temp_dirs() -> List[Tuple[str, str, str, bool]]:
     temp_dirs: List[Tuple[str, str, str, bool]] = [
@@ -44,6 +44,8 @@ def get_temp_dirs() -> List[Tuple[str, str, str, bool]]:
             "Files in the Recycle Bin (permanent deletion)", True),
         ("Gradle Cache", os.path.join(os.getenv('USERPROFILE', ''), '.gradle', 'caches'),
             "Gradle build cache (may require re-downloading dependencies)", True),
+        ("Gradle Temp", os.path.join(os.getenv('USERPROFILE', ''), '.gradle', '.tmp'),
+            "Gradle temp files (may require re-downloading dependencies)", True),
         # TODO: Add AI cache dirs (with confrimation)
     ]
     return temp_dirs

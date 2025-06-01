@@ -33,6 +33,7 @@ Below is a list of directories that PC Cleaner targets for cleanup. Some directo
 | Prefetch | `C:\Windows\Prefetch` | System prefetch files (may slow initial program loading if cleared) | Yes |
 | Recycle Bin | `C:\$Recycle.Bin` | Files in the Recycle Bin (permanent deletion) | Yes |
 | Gradle Cache | `%USERPROFILE%\.gradle\caches` | Gradle build cache (may require re-downloading dependencies) | Yes |
+| Gradle Temp | `%USERPROFILE%\.gradle\.tmp` | Gradle temp files (may require re-downloading dependencies) | Yes |
 
 </details>
 
