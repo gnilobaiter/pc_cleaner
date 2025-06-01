@@ -76,13 +76,15 @@ jobs:
 
       - name: Create venv
         run: python -m venv .venv
+        shell: cmd
 
       - name: Activate venv and install deps
         run: |
-          call .venv\Scripts\activate
+          .venv\Scripts\activate
           python -m pip install --upgrade pip
           pip install pyinstaller
           pip install -r requirements.txt
+        shell: powershell
 
       - name: Extract VERSION from config.py
         id: get_version
@@ -113,18 +115,20 @@ jobs:
 
       - name: Build EXE
         run: |
-          call .venv\Scripts\activate
+          .venv\Scripts\activate
           pyinstaller --name PC_CLEANER ^
             --noconfirm ^
             --clean ^
             --onefile ^
             --hidden-import colorama ^
             main.py
+        shell: powershell
 
       - name: Move EXE
         run: |
           mkdir releases
           move dist\PC_CLEANER.exe releases\PC_CLEANER_${{ env.VERSION }}.exe
+        shell: cmd
 
       - name: Create Release
         id: create_release
