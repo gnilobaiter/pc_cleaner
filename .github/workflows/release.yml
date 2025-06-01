@@ -121,11 +121,11 @@ jobs:
       - name: Build EXE
         run: |
           .venv\Scripts\activate
-          pyinstaller --name PC_CLEANER ^
-            --noconfirm ^
-            --clean ^
-            --onefile ^
-            --hidden-import colorama ^
+          pyinstaller --name PC_CLEANER `
+            --noconfirm `
+            --clean `
+            --onefile `
+            --hidden-import colorama `
             main.py
         shell: powershell
 
