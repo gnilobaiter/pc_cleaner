@@ -1,0 +1,6 @@
+__pycache__
+.venv
+*.spec
+dist
+build
+build.bat

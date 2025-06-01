@@ -1,0 +1,99 @@
+name: Build and Release PC Cleaner
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'requirements.txt'
+      - 'main.py'
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    if: contains(github.event.head_commit.message, 'v[0-9]+.[0-9]+.[0-9]+')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+
+      - name: Create venv
+        run: python -m venv .venv
+
+      - name: Activate venv and install deps
+        run: |
+          call .venv\Scripts\activate
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          pip install -r requirements.txt
+
+      - name: Extract VERSION from config.py
+        id: get_version
+        run: |
+          for /f "tokens=2 delims==" %a in ('findstr /R "^VERSION[ ]*=" src\config.py') do set "VERSION=%a"
+          set "VERSION=%VERSION: =%"
+          set "VERSION=%VERSION:\"=%"
+          echo Extracted VERSION: %VERSION%
+          echo VERSION=%VERSION%>>%GITHUB_ENV%
+        shell: cmd
+
+      - name: Debug VERSION
+        run: |
+          echo VERSION from env: ${{ env.VERSION }}
+        shell: bash
+
+      - name: Check if tag exists and create if not
+        run: |
+          git fetch --tags
+          if not exist "refs/tags/${{ env.VERSION }}" (
+            echo Creating tag ${{ env.VERSION }}...
+            git tag ${{ env.VERSION }}
+            git push origin ${{ env.VERSION }}
+          ) else (
+            echo Tag ${{ env.VERSION }} already exists, skipping...
+          )
+        shell: cmd
+
+      - name: Build EXE
+        run: |
+          call .venv\Scripts\activate
+          pyinstaller --name PC_CLEANER ^
+            --noconfirm ^
+            --clean ^
+            --onefile ^
+            --hidden-import colorama ^
+            main.py
+
+      - name: Move EXE
+        run: |
+          mkdir releases
+          move dist\PC_CLEANER.exe releases\PC_CLEANER_${{ env.VERSION }}.exe
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.VERSION }}
+          release_name: PC Cleaner ${{ env.VERSION }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: releases/PC_CLEANER_${{ env.VERSION }}.exe
+          asset_name: PC_CLEANER_${{ env.VERSION }}.exe
+          asset_content_type: application/octet-stream
