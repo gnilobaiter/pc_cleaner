@@ -8,10 +8,60 @@ on:
       - 'src/**'
       - 'requirements.txt'
       - 'main.py'
+
 jobs:
+  check-commit-message:
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.check_version_and_files.outputs.should_build }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Debug commit message
+        run: |
+          echo "Commit message: ${{ github.event.head_commit.message }}"
+        shell: bash
+
+      - name: Check if commit message contains version and .py files changed
+        id: check_version_and_files
+        run: |
+          # Check if commit message contains version
+          VERSION_FOUND=false
+          if echo "${{ github.event.head_commit.message }}" | grep -qE 'v[0-9]+\.[0-9]+\.[0-9]+'; then
+            VERSION_FOUND=true
+            echo "Version found in commit message."
+          else
+            echo "No version found in commit message."
+          fi
+
+          # Check if .py files were changed
+          PY_FILES_CHANGED=false
+          git diff --name-only HEAD^ HEAD | grep -qE '\.py$'
+          if [ $? -eq 0 ]; then
+            PY_FILES_CHANGED=true
+            echo "Changed .py files found:"
+            git diff --name-only HEAD^ HEAD | grep -E '\.py$'
+          else
+            echo "No .py files changed."
+          fi
+
+          # Set should_build based on both conditions
+          if [ "$VERSION_FOUND" = "true" ] && [ "$PY_FILES_CHANGED" = "true" ]; then
+            echo "Both conditions met, proceeding with build."
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "Conditions not met, skipping build."
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+
   build-and-release:
+    needs: check-commit-message
+    if: needs.check-commit-message.outputs.should_build == 'true'
     runs-on: windows-latest
-    if: contains(github.event.head_commit.message, 'v[0-9]+.[0-9]+.[0-9]+')
 
     steps:
       - name: Checkout code
@@ -40,8 +90,14 @@ jobs:
           for /f "tokens=2 delims==" %a in ('findstr /R "^VERSION[ ]*=" src\config.py') do set "VERSION=%a"
           set "VERSION=%VERSION: =%"
           set "VERSION=%VERSION:\"=%"
-          echo VERSION=%VERSION% >> $env:GITHUB_ENV
+          echo Extracted VERSION: %VERSION%
+          echo VERSION=%VERSION%>>%GITHUB_ENV%
         shell: cmd
+
+      - name: Debug VERSION
+        run: |
+          echo VERSION from env: ${{ env.VERSION }}
+        shell: bash
 
       - name: Check if tag exists and create if not
         run: |
