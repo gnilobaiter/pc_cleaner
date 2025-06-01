@@ -9,6 +9,9 @@ on:
       - 'requirements.txt'
       - 'main.py'
 
+permissions:
+  contents: write
+
 jobs:
   check-commit-message:
     runs-on: ubuntu-latest
