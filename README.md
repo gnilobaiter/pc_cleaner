@@ -3,9 +3,10 @@
 A system cleanup utility for Windows.
 
 ## Features
-- Cleans system and user temporary files.
-- Flushes DNS cache.
-- Purges pip cache.
+* Cleans system and user temporary files.
+* Cleans browser, application, development and launcher caches.
+* Flushes DNS cache.
+* Purges pip, npm, yarn, gradle caches.
 
 ## Cleaned Directories
 Below is a list of directories that PC Cleaner targets for cleanup. Some directories are cleaned automatically, while others require user confirmation due to potential impacts.
@@ -13,34 +14,50 @@ Below is a list of directories that PC Cleaner targets for cleanup. Some directo
 <details>
 <summary>Folders list</summary>
 
-| Directory Name | Path | Description | Requires Confirmation |
-|----------------|------|-------------|----------------------|
-| System Temp | `C:\Windows\Temp` | Temporary system files | No |
-| User Temp | `%USERPROFILE%\AppData\Local\Temp` | Temporary user files in Local directory | No |
-| User Temp | `%USERPROFILE%\AppData\LocalLow\Temp` | Temporary user files in LocalLow directory | No |
-| User Cache | `%USERPROFILE%\.cache` | Cache directory in user directory (.cache) | No |
-| Internet Cache | `%USERPROFILE%\AppData\Local\Microsoft\Windows\INetCache` | Internet Explorer and Edge browser cache | No |
-| Thumbnail Cache | `%USERPROFILE%\AppData\Local\Microsoft\Windows\Explorer` | Thumbnail cache for file explorer (will regenerate on demand) | No |
-| Crash Dumps | `%USERPROFILE%\AppData\Local\CrashDumps` | Application crash dump files | No |
-| Live Kernel Reports | `C:\Windows\LiveKernelReports` | System diagnostic reports | No |
-| Event Logs | `C:\Windows\System32\winevt\Logs` | Windows event log files (system and application logs) | No |
-| Delivery Optimization | `C:\Windows\SoftwareDistribution\DeliveryOptimization` | Windows Update delivery optimization cache | No |
-| Windows Updates | `C:\Windows\SoftwareDistribution\Download` | Windows Update downloads | No |
-| Windows.old | `C:\Windows.old` | Previous Windows installation files (removes rollback option) | No |
-| Spotify Cache | `%USERPROFILE%\AppData\Local\Spotify\Data` | Spotify data cache | No |
-| NVIDIA GL Cache | `%USERPROFILE%\AppData\Local\NVIDIA\GLCache` | NVIDIA OpenGL cache (may cause temporary shader recompilation) | Yes |
-| NVIDIA DX Cache | `%USERPROFILE%\AppData\Local\NVIDIA\DXCache` | NVIDIA DirectX cache (may cause temporary graphics reload) | Yes |
-| Prefetch | `C:\Windows\Prefetch` | System prefetch files (may slow initial program loading if cleared) | Yes |
-| Recycle Bin | `C:\$Recycle.Bin` | Files in the Recycle Bin (permanent deletion) | Yes |
-| Gradle Cache | `%USERPROFILE%\.gradle\caches` | Gradle build cache (may require re-downloading dependencies) | Yes |
-| Gradle Temp | `%USERPROFILE%\.gradle\.tmp` | Gradle temp files (may require re-downloading dependencies) | Yes |
+| Directory Name          | Path                                                                 | Description                                | Requires Confirmation |
+| ----------------------- | -------------------------------------------------------------------- | ------------------------------------------ | --------------------- |
+| System Temp             | `C:\Windows\Temp`                                                    | Temporary system files                     | No                    |
+| User Temp               | `%USERPROFILE%\AppData\Local\Temp`                                   | Temporary user files in Local directory    | No                    |
+| User Temp               | `%USERPROFILE%\AppData\LocalLow\Temp`                                | Temporary user files in LocalLow directory | No                    |
+| User Cache              | `%USERPROFILE%\.cache`                                               | Cache directory in user directory (.cache) | No                    |
+| Internet Cache          | `%USERPROFILE%\AppData\Local\Microsoft\Windows\INetCache`            | Internet Explorer and Edge browser cache   | No                    |
+| Thumbnail Cache         | `%USERPROFILE%\AppData\Local\Microsoft\Windows\Explorer`             | Thumbnail cache for file explorer          | No                    |
+| Crash Dumps             | `%USERPROFILE%\AppData\Local\CrashDumps`                             | Application crash dump files               | No                    |
+| Live Kernel Reports     | `C:\Windows\LiveKernelReports`                                       | System diagnostic reports                  | No                    |
+| Event Logs              | `C:\Windows\System32\winevt\Logs`                                    | Windows event log files                    | No                    |
+| Delivery Optimization   | `C:\Windows\SoftwareDistribution\DeliveryOptimization`               | Windows Update delivery optimization cache | No                    |
+| Windows Updates         | `C:\Windows\SoftwareDistribution\Download`                           | Windows Update downloads                   | No                    |
+| Windows.old             | `C:\Windows.old`                                                     | Previous Windows installation files        | No                    |
+| Spotify Cache           | `%USERPROFILE%\AppData\Local\Spotify\Data`                           | Spotify data cache                         | No                    |
+| Windows Error Reporting | `%USERPROFILE%\AppData\Local\Microsoft\Windows\WER`                  | Windows Error Reporting crash reports      | No                    |
+| Edge Cache              | `%USERPROFILE%\AppData\Local\Microsoft\Edge\User Data\Default\Cache` | Microsoft Edge browser cache               | No                    |
+| Chrome Cache            | `%USERPROFILE%\AppData\Local\Google\Chrome\User Data\Default\Cache`  | Google Chrome browser cache                | No                    |
+| pip Cache               | `%USERPROFILE%\AppData\Local\pip\cache`                              | Python pip package cache                   | No                    |
+| npm Cache               | `%USERPROFILE%\AppData\Local\npm-cache`                              | npm package manager cache                  | No                    |
+| Yarn Cache              | `%USERPROFILE%\AppData\Local\Yarn\Cache`                             | Yarn package manager cache                 | No                    |
+| Visual Studio Cache     | `%USERPROFILE%\AppData\Local\Microsoft\VisualStudio`                 | Visual Studio local cache files            | No                    |
+| VS Code Cache           | `%APPDATA%\Code\Cache`                                               | Visual Studio Code cache                   | No                    |
+| VS Code Cached Data     | `%APPDATA%\Code\CachedData`                                          | Visual Studio Code cached data             | No                    |
+| NVIDIA GL Cache         | `%USERPROFILE%\AppData\Local\NVIDIA\GLCache`                         | NVIDIA OpenGL cache                        | Yes                   |
+| NVIDIA DX Cache         | `%USERPROFILE%\AppData\Local\NVIDIA\DXCache`                         | NVIDIA DirectX cache                       | Yes                   |
+| Prefetch                | `C:\Windows\Prefetch`                                                | System prefetch files                      | Yes                   |
+| Recycle Bin             | `C:\$Recycle.Bin`                                                    | Files in the Recycle Bin                   | Yes                   |
+| Gradle Cache            | `%USERPROFILE%\.gradle\caches`                                       | Gradle build cache                         | Yes                   |
+| Gradle Temp             | `%USERPROFILE%\.gradle\.tmp`                                         | Gradle temp files                          | Yes                   |
+| Windows Logs            | `C:\Windows\Logs`                                                    | Windows diagnostic and update logs         | Yes                   |
+| Discord Cache           | `%APPDATA%\discord\Cache`                                            | Discord application cache                  | Yes                   |
+| Discord Code Cache      | `%APPDATA%\discord\Code Cache`                                       | Discord code cache                         | Yes                   |
+| Steam HTML Cache        | `%LOCALAPPDATA%\Steam\htmlcache`                                     | Steam embedded browser cache               | Yes                   |
+| Steam Shader Cache      | `%LOCALAPPDATA%\Steam\shadercache`                                   | Steam shader cache                         | Yes                   |
+| Epic Games Cache        | `%LOCALAPPDATA%\EpicGamesLauncher\Saved\webcache`                    | Epic Games Launcher web cache              | Yes                   |
+| Battle.net Cache        | `%PROGRAMDATA%\Battle.net\Cache`                                     | Battle.net application cache               | Yes                   |
 
 </details>
 
 ## Requirements
-- Python 3.8+
-- Windows 10+
-- Dependencies listed in `requirements.txt`
+* Python 3.8+
+* Windows 10+
+* Dependencies listed in `requirements.txt`
 
 ## Installation
 1. Clone the repository:

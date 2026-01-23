@@ -1,7 +1,7 @@
 import os
 from typing import List, Tuple
 
-VERSION = "v1.0.1"
+VERSION = "v1.0.2"
 
 def get_temp_dirs() -> List[Tuple[str, str, str, bool]]:
     temp_dirs: List[Tuple[str, str, str, bool]] = [
@@ -32,6 +32,24 @@ def get_temp_dirs() -> List[Tuple[str, str, str, bool]]:
             "Previous Windows installation files (removes rollback option)", False),
         ("Spotify Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'Spotify', 'Data'),
             "Spotify data cache", False),
+        ("Windows Error Reporting", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'Microsoft', 'Windows', 'WER'),
+            "Windows Error Reporting crash reports", False),
+        ("Edge Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'Microsoft', 'Edge', 'User Data', 'Default', 'Cache'),
+            "Microsoft Edge browser cache", False),
+        ("Chrome Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'Google', 'Chrome', 'User Data', 'Default', 'Cache'),
+            "Google Chrome browser cache", False),
+        ("pip Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'pip', 'cache'),
+            "Python pip package cache", False),
+        ("npm Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'npm-cache'),
+            "npm package manager cache", False),
+        ("Yarn Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'Yarn', 'Cache'),
+            "Yarn package manager cache", False),
+        ("Visual Studio Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'Microsoft', 'VisualStudio'),
+            "Visual Studio local cache files", False),
+        ("VS Code Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Roaming', 'Code', 'Cache'),
+            "Visual Studio Code cache", False),
+        ("VS Code Cached Data", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Roaming', 'Code', 'CachedData'),
+            "Visual Studio Code cached data", False),
         
         # With confirmation (True)
         ("NVIDIA GL Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'NVIDIA', 'GLCache'),
@@ -46,6 +64,19 @@ def get_temp_dirs() -> List[Tuple[str, str, str, bool]]:
             "Gradle build cache (may require re-downloading dependencies)", True),
         ("Gradle Temp", os.path.join(os.getenv('USERPROFILE', ''), '.gradle', '.tmp'),
             "Gradle temp files (may require re-downloading dependencies)", True),
-        # TODO: Add AI cache dirs (with confrimation)
+        ("Windows Logs", os.path.join(os.getenv('SystemRoot', 'C:\\Windows'), 'Logs'),
+            "Windows diagnostic and update log files", True),
+        ("Discord Cache", os.path.join(os.getenv('APPDATA', ''), 'discord', 'Cache'),
+            "Discord application cache", True),
+        ("Discord Code Cache", os.path.join(os.getenv('APPDATA', ''), 'discord', 'Code Cache'),
+            "Discord code cache", True),
+        ("Steam HTML Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'Steam', 'htmlcache'),
+            "Steam embedded browser cache", True),
+        ("Steam Shader Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'Steam', 'shadercache'),
+            "Steam shader cache (may recompile shaders)", True),
+        ("Epic Games Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'EpicGamesLauncher', 'Saved', 'webcache'),
+            "Epic Games Launcher web cache", True),
+        ("Battle.net Cache", os.path.join(os.getenv('PROGRAMDATA', 'C:\\ProgramData'), 'Battle.net', 'Cache'),
+            "Battle.net application cache", True),
     ]
     return temp_dirs
