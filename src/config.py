@@ -1,7 +1,7 @@
 import os
 from typing import List, Tuple
 
-VERSION = "v1.0.2"
+VERSION = "v1.0.3"
 
 def get_temp_dirs() -> List[Tuple[str, str, str, bool]]:
     temp_dirs: List[Tuple[str, str, str, bool]] = [
