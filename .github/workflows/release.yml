@@ -109,14 +109,15 @@ jobs:
       - name: Check if tag exists and create if not
         run: |
           git fetch --tags
-          if not exist "refs/tags/${{ env.VERSION }}" (
-            echo Creating tag ${{ env.VERSION }}...
-            git tag ${{ env.VERSION }}
-            git push origin ${{ env.VERSION }}
-          ) else (
-            echo Tag ${{ env.VERSION }} already exists, skipping...
-          )
-        shell: cmd
+          git rev-parse -q --verify "refs/tags/$env:VERSION"
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Creating tag $env:VERSION..."
+            git tag $env:VERSION
+            git push origin $env:VERSION
+          } else {
+            Write-Host "Tag $env:VERSION already exists, skipping..."
+          }
+        shell: powershell
 
       - name: Build EXE
         run: |
@@ -135,23 +136,15 @@ jobs:
           move dist\PC_CLEANER.exe releases\PC_CLEANER.exe
         shell: cmd
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Create or Update Release
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ env.VERSION }}
-          release_name: PC Cleaner ${{ env.VERSION }}
+          name: PC Cleaner ${{ env.VERSION }}
           draft: false
           prerelease: false
-
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: releases/PC_CLEANER.exe
-          asset_name: PC_CLEANER.exe
-          asset_content_type: application/octet-stream
+          files: releases/PC_CLEANER.exe
+          fail_on_unmatched_files: true
+          overwrite_files: true
