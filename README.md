@@ -64,7 +64,6 @@ Below is a list of directories that PC Cleaner targets for cleanup. Some directo
 | Steam Shader Cache      | `%LOCALAPPDATA%\Steam\shadercache`                                   | Steam shader cache                         | Yes                   |
 | Epic Games Cache        | `%LOCALAPPDATA%\EpicGamesLauncher\Saved\webcache`                    | Epic Games Launcher web cache              | Yes                   |
 | Battle.net Cache        | `%PROGRAMDATA%\Battle.net\Cache`                                     | Battle.net application cache               | Yes                   |
-| JetBrains Caches        | `%LOCALAPPDATA%\JetBrains`                                           | JetBrains IDE local caches                 | Yes                   |
 | Adobe Media Cache       | `%APPDATA%\Adobe\Common\Media Cache Files`                           | Adobe media cache files                    | Yes                   |
 
 </details>

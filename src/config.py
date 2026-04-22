@@ -1,6 +1,7 @@
 import os
 from typing import List, Tuple
 
+# This version using in Github Actions and CLI
 VERSION = "v1.0.3"
 
 def get_temp_dirs() -> List[Tuple[str, str, str, bool]]:
@@ -104,8 +105,6 @@ def get_temp_dirs() -> List[Tuple[str, str, str, bool]]:
             "Epic Games Launcher web cache", True),
         ("Battle.net Cache", os.path.join(os.getenv('PROGRAMDATA', 'C:\\ProgramData'), 'Battle.net', 'Cache'),
             "Battle.net application cache", True),
-        ("JetBrains Caches", os.path.join(os.getenv('LOCALAPPDATA', ''), 'JetBrains'),
-            "JetBrains IDE local caches", True),
         ("Adobe Media Cache", os.path.join(os.getenv('APPDATA', ''), 'Adobe', 'Common', 'Media Cache Files'),
             "Adobe media cache files", True),
     ]
