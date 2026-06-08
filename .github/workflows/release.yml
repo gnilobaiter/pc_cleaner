@@ -83,10 +83,9 @@ jobs:
 
       - name: Activate venv and install deps
         run: |
-          .venv\Scripts\activate
-          python -m pip install --upgrade pip
-          pip install pyinstaller
-          pip install -r requirements.txt
+          .venv\Scripts\python.exe -m pip install --upgrade pip
+          .venv\Scripts\pip.exe install pyinstaller
+          .venv\Scripts\pip.exe install -r requirements.txt
         shell: powershell
 
       - name: Extract VERSION from config.py
@@ -121,12 +120,12 @@ jobs:
 
       - name: Build EXE
         run: |
-          .venv\Scripts\activate
-          pyinstaller --name PC_CLEANER `
+          .venv\Scripts\pyinstaller.exe --name PC_CLEANER `
             --noconfirm `
             --clean `
             --onefile `
-            --hidden-import colorama `
+            --uac-admin `
+            --collect-submodules colorama `
             main.py
         shell: powershell
 

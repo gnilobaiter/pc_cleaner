@@ -2,7 +2,7 @@ import os
 from typing import List, Tuple
 
 # This version using in Github Actions and CLI
-VERSION = "v1.0.3"
+VERSION = "v1.0.4"
 
 def get_temp_dirs() -> List[Tuple[str, str, str, bool]]:
     temp_dirs: List[Tuple[str, str, str, bool]] = [
@@ -59,7 +59,17 @@ def get_temp_dirs() -> List[Tuple[str, str, str, bool]]:
             "Visual Studio Code cache", False),
         ("VS Code Cached Data", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Roaming', 'Code', 'CachedData'),
             "Visual Studio Code cached data", False),
-        
+        ("VS Code Logs", os.path.join(os.getenv('APPDATA', ''), 'Code', 'logs'),
+            "Visual Studio Code log files", False),
+        ("uv Cache", os.path.join(os.getenv('LOCALAPPDATA', ''), 'uv', 'cache'),
+            "uv Python package manager cache", False),
+        ("Poetry Cache", os.path.join(os.getenv('LOCALAPPDATA', ''), 'pypoetry', 'Cache'),
+            "Poetry Python package manager cache", False),
+        ("Bun Cache", os.path.join(os.getenv('LOCALAPPDATA', ''), 'bun', 'install', 'cache'),
+            "Bun JavaScript runtime cache", False),
+        ("pnpm Cache", os.path.join(os.getenv('LOCALAPPDATA', ''), 'pnpm-cache'),
+            "pnpm package manager cache", False),
+
         # With confirmation (True)
         ("Edge Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'Microsoft', 'Edge', 'User Data', 'Default', 'Cache'),
             "Microsoft Edge browser cache", True),
@@ -107,5 +117,17 @@ def get_temp_dirs() -> List[Tuple[str, str, str, bool]]:
             "Battle.net application cache", True),
         ("Adobe Media Cache", os.path.join(os.getenv('APPDATA', ''), 'Adobe', 'Common', 'Media Cache Files'),
             "Adobe media cache files", True),
+        ("Intel Shader Cache", os.path.join(os.getenv('LOCALAPPDATA', ''), 'Intel', 'ShaderCache'),
+            "Intel GPU shader cache (may cause shader recompilation)", True),
+        ("AMD DX Cache", os.path.join(os.getenv('LOCALAPPDATA', ''), 'AMD', 'DxCache'),
+            "AMD DirectX shader cache (may cause shader recompilation)", True),
+        ("Teams Cache", os.path.join(os.getenv('APPDATA', ''), 'Microsoft', 'Teams', 'Cache'),
+            "Microsoft Teams application cache", True),
+        ("Slack Cache", os.path.join(os.getenv('APPDATA', ''), 'Slack', 'Cache'),
+            "Slack application cache", True),
+        ("Zoom Cache", os.path.join(os.getenv('APPDATA', ''), 'Zoom', 'data'),
+            "Zoom application data cache", True),
+        ("Brave Cache", os.path.join(os.getenv('LOCALAPPDATA', ''), 'BraveSoftware', 'Brave-Browser', 'User Data', 'Default', 'Cache'),
+            "Brave browser cache", True),
     ]
     return temp_dirs

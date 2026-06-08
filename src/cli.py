@@ -1,8 +1,7 @@
 from src.cleaner import Cleaner
-from src.utils import setup_logging, print_banner
+from src.utils import print_banner
 
 def start_cli() -> int:
-    setup_logging()
     print_banner()
     
     cleaner = Cleaner(dry_run=False)

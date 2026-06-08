@@ -1,4 +1,3 @@
-import logging
 import platform
 import os
 import sys
@@ -13,11 +12,18 @@ except ImportError:
     USE_COLORS = False
     Fore = Style = type('Dummy', (), {'RED': '', 'GREEN': '', 'CYAN': '', 'YELLOW': '', 'WHITE': '', 'MAGENTA': '', 'RESET_ALL': ''})()
 
-def setup_logging() -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+_SUPPORTS_EMOJI: bool = (
+    sys.stdout.encoding.lower().startswith('utf')
+    and (platform.system() != "Windows" or platform.release() >= "10")
+)
 
-def supports_emoji() -> bool:
-    return sys.stdout.encoding.lower().startswith('utf') and (platform.system() != "Windows" or platform.release() >= "10")
+_EMOJI_FALLBACKS: dict[str, str] = {
+    "[🧹]": "[-]",
+    "[✅]": "[+]",
+    "[❓]": "[?]",
+    "[💽]": "[>]",
+    "[❗]": "[!]",
+}
 
 def print_status(message: str, error: bool = False, emoji: str = "[🧹]") -> None:
     if emoji == "[✅]":
@@ -30,14 +36,19 @@ def print_status(message: str, error: bool = False, emoji: str = "[🧹]") -> No
         color = Fore.RED
     else:
         color = Fore.MAGENTA
+    display = emoji if _SUPPORTS_EMOJI else _EMOJI_FALLBACKS.get(emoji, "[*]")
     if USE_COLORS:
-        print(f"{color}{emoji} {message}{Style.RESET_ALL}")
+        print(f"{color}{display} {message}{Style.RESET_ALL}")
     else:
-        print(f"{emoji} {message}")
+        print(f"{display} {message}")
 
 def print_banner() -> None:
-    print(f"{Fore.RED}          PC_CLEANER {VERSION}")
-    print(f"------------------------------------{Style.RESET_ALL}")
+    if USE_COLORS:
+        print(f"{Fore.RED}          PC_CLEANER {VERSION}")
+        print(f"------------------------------------{Style.RESET_ALL}")
+    else:
+        print(f"          PC_CLEANER {VERSION}")
+        print("------------------------------------")
 
 def convert_size(size_bytes: int) -> str:
     if size_bytes == 0:
@@ -53,7 +64,9 @@ def has_access(folder: Path) -> bool:
 def get_user_confirmation(name: str, description: str) -> bool:
     print_status(f"{name}: {description}", emoji="[❓]")
     while True:
-        choice = input(f"{Fore.YELLOW}[❓] Clear this? (y/n): ").lower().strip()
+        q = "[❓]" if _SUPPORTS_EMOJI else "[?]"
+        prompt = f"{Fore.YELLOW}{q} Clear this? (y/n): {Style.RESET_ALL}" if USE_COLORS else f"{q} Clear this? (y/n): "
+        choice = input(prompt).lower().strip()
         if choice in ('y', 'n'):
             return choice == 'y'
         print_status("Please enter 'y' or 'n'", error=True, emoji="[❗]")
