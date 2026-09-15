@@ -4,7 +4,7 @@ import ctypes
 import os
 
 # This version using in Github Actions and CLI
-VERSION = "v1.1.1"
+VERSION = "v1.1.2"
 
 
 def _windows_directory() -> str:

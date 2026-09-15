@@ -35,7 +35,7 @@ class Cleaner:
                 try:
                     if self._is_reparse_point(item):
                         self.print_status(
-                            f"Skipping reparse point {item}", error=True, emoji="[вќ—]"
+                            f"Skipping reparse point {item}", error=True, emoji="[❗]"
                         )
                     elif item.is_file() or item.is_symlink():
                         size = item.stat().st_size
