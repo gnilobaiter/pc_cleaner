@@ -1,132 +1,571 @@
+from __future__ import annotations
+
+import ctypes
 import os
 
 # This version using in Github Actions and CLI
-VERSION = "v1.1.0"
+VERSION = "v1.1.1"
+
+
+def _windows_directory() -> str:
+    if os.name != "nt":
+        return os.getenv("SystemRoot", "C:\\Windows")
+
+    buffer = ctypes.create_unicode_buffer(260)
+    if ctypes.windll.kernel32.GetWindowsDirectoryW(buffer, len(buffer)) == 0:
+        raise OSError("Unable to determine the Windows directory")
+    return buffer.value
+
+
+def _known_folder(csidl: int, fallback_env: str) -> str:
+    if os.name != "nt":
+        return os.getenv(fallback_env, "")
+
+    buffer = ctypes.create_unicode_buffer(260)
+    if ctypes.windll.shell32.SHGetFolderPathW(None, csidl, None, 0, buffer) != 0:
+        raise OSError("Unable to determine a Windows known folder")
+    return buffer.value
+
+
+def get_trusted_roots() -> tuple[str, ...]:
+    windows_dir = _windows_directory()
+    return (
+        windows_dir,
+        _known_folder(0x28, "USERPROFILE"),
+        _known_folder(0x1C, "LOCALAPPDATA"),
+        _known_folder(0x1A, "APPDATA"),
+        _known_folder(0x23, "PROGRAMDATA"),
+    )
+
+
+def is_trusted_cleanup_path(path: str, name: str = "") -> bool:
+    candidate = os.path.normcase(os.path.abspath(path))
+    windows_dir = _windows_directory()
+    system_drive = os.path.splitdrive(windows_dir)[0]
+    special_paths = {
+        "Windows.old": os.path.join(windows_dir, "..", "Windows.old"),
+        "Recycle Bin": os.path.join(system_drive + os.sep, "$Recycle.Bin"),
+    }
+    if name in special_paths:
+        return candidate == os.path.normcase(os.path.abspath(special_paths[name]))
+
+    for root in get_trusted_roots():
+        trusted_root = os.path.normcase(os.path.abspath(root))
+        try:
+            if os.path.commonpath((candidate, trusted_root)) == trusted_root:
+                return True
+        except ValueError:
+            continue
+    return False
+
 
 def get_temp_dirs() -> list[tuple[str, str, str, bool]]:
     temp_dirs: list[tuple[str, str, str, bool]] = [
         # Without confirmation (False)
-        ("System Temp", os.path.join(os.getenv('SystemRoot', 'C:\\Windows'), 'Temp'), 
-            "Temporary system files", False),
-        ("User Temp", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'Temp'),
-            "Temporary user files in Local directory", False),
-        ("User Temp", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'LocalLow', 'Temp'),
-            "Temporary user files in LocalLow directory", False),
-        ("User Cache", os.path.join(os.getenv('USERPROFILE', ''), '.cache'),
-            "Cache directory in user directory (.cache)", False),
-        ("Internet Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'Microsoft', 'Windows', 'INetCache'),
-            "Internet Explorer and Edge browser cache", False),
-        ("Thumbnail Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'Microsoft', 'Windows', 'Explorer'),
-            "Thumbnail cache for file explorer (will regenerate on demand)", False),
-        ("Crash Dumps", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'CrashDumps'),
-            "Application crash dump files", False),
-        ("Live Kernel Reports", os.path.join(os.getenv('SystemRoot', 'C:\\Windows'), 'LiveKernelReports'),
-            "System diagnostic reports", False),
-        ("Event Logs", os.path.join(os.getenv('SystemRoot', 'C:\\Windows'), 'System32', 'winevt', 'Logs'),
-            "Windows event log files (system and application logs)", False),
-        ("Delivery Optimization", os.path.join(os.getenv('SystemRoot', 'C:\\Windows'), 'SoftwareDistribution', 'DeliveryOptimization'),
-            "Windows Update delivery optimization cache", False),
-        ("Windows Updates", os.path.join(os.getenv('SystemRoot', 'C:\\Windows'), 'SoftwareDistribution', 'Download'),
-            "Windows Update downloads", False),
-        ("Windows.old", os.path.join(os.getenv('SystemRoot', 'C:\\Windows'), '..', 'Windows.old'),
-            "Previous Windows installation files (removes rollback option)", False),
-        ("Spotify Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'Spotify', 'Data'),
-            "Spotify data cache", False),
-        ("Windows Error Reporting", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'Microsoft', 'Windows', 'WER'),
-            "Windows Error Reporting crash reports", False),
-        ("Microsoft Store Cache", os.path.join(os.getenv('LOCALAPPDATA', ''), 'Packages', 'Microsoft.WindowsStore_8wekyb3d8bbwe', 'LocalCache'),
-            "Microsoft Store local cache", False),
-        ("Windows WebCache", os.path.join(os.getenv('LOCALAPPDATA', ''), 'Microsoft', 'Windows', 'WebCache'),
-            "Windows web component cache", False),
-        ("Pytest Cache", os.path.join(os.getenv('USERPROFILE', ''), '.pytest_cache'),
-            "Python pytest cache", False),
-        ("Ruff Cache", os.path.join(os.getenv('USERPROFILE', ''), '.cache', 'ruff'),
-            "Ruff linter cache", False),
-        ("Mypy Cache", os.path.join(os.getenv('USERPROFILE', ''), '.mypy_cache'),
-            "Mypy type checker cache", False),
-        ("Corepack Cache", os.path.join(os.getenv('LOCALAPPDATA', ''), 'node', 'corepack'),
-            "Node Corepack package manager cache", False),
-        ("pip Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'pip', 'cache'),
-            "Python pip package cache", False),
-        ("npm Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'npm-cache'),
-            "npm package manager cache", False),
-        ("Yarn Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'Yarn', 'Cache'),
-            "Yarn package manager cache", False),
-        ("Visual Studio Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'Microsoft', 'VisualStudio'),
-            "Visual Studio local cache files", False),
-        ("VS Code Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Roaming', 'Code', 'Cache'),
-            "Visual Studio Code cache", False),
-        ("VS Code Cached Data", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Roaming', 'Code', 'CachedData'),
-            "Visual Studio Code cached data", False),
-        ("VS Code Logs", os.path.join(os.getenv('APPDATA', ''), 'Code', 'logs'),
-            "Visual Studio Code log files", False),
-        ("uv Cache", os.path.join(os.getenv('LOCALAPPDATA', ''), 'uv', 'cache'),
-            "uv Python package manager cache", False),
-        ("Poetry Cache", os.path.join(os.getenv('LOCALAPPDATA', ''), 'pypoetry', 'Cache'),
-            "Poetry Python package manager cache", False),
-        ("Bun Cache", os.path.join(os.getenv('LOCALAPPDATA', ''), 'bun', 'install', 'cache'),
-            "Bun JavaScript runtime cache", False),
-        ("pnpm Cache", os.path.join(os.getenv('LOCALAPPDATA', ''), 'pnpm-cache'),
-            "pnpm package manager cache", False),
-
+        (
+            "System Temp",
+            os.path.join(os.getenv("SystemRoot", "C:\\Windows"), "Temp"),
+            "Temporary system files",
+            False,
+        ),
+        (
+            "User Temp",
+            os.path.join(os.getenv("USERPROFILE", ""), "AppData", "Local", "Temp"),
+            "Temporary user files in Local directory",
+            False,
+        ),
+        (
+            "User Temp",
+            os.path.join(os.getenv("USERPROFILE", ""), "AppData", "LocalLow", "Temp"),
+            "Temporary user files in LocalLow directory",
+            False,
+        ),
+        (
+            "User Cache",
+            os.path.join(os.getenv("USERPROFILE", ""), ".cache"),
+            "Cache directory in user directory (.cache)",
+            False,
+        ),
+        (
+            "Internet Cache",
+            os.path.join(
+                os.getenv("USERPROFILE", ""),
+                "AppData",
+                "Local",
+                "Microsoft",
+                "Windows",
+                "INetCache",
+            ),
+            "Internet Explorer and Edge browser cache",
+            False,
+        ),
+        (
+            "Thumbnail Cache",
+            os.path.join(
+                os.getenv("USERPROFILE", ""),
+                "AppData",
+                "Local",
+                "Microsoft",
+                "Windows",
+                "Explorer",
+            ),
+            "Thumbnail cache for file explorer (will regenerate on demand)",
+            False,
+        ),
+        (
+            "Crash Dumps",
+            os.path.join(
+                os.getenv("USERPROFILE", ""), "AppData", "Local", "CrashDumps"
+            ),
+            "Application crash dump files",
+            False,
+        ),
+        (
+            "Live Kernel Reports",
+            os.path.join(os.getenv("SystemRoot", "C:\\Windows"), "LiveKernelReports"),
+            "System diagnostic reports",
+            True,
+        ),
+        (
+            "Event Logs",
+            os.path.join(
+                os.getenv("SystemRoot", "C:\\Windows"), "System32", "winevt", "Logs"
+            ),
+            "Windows event log files (system and application logs)",
+            True,
+        ),
+        (
+            "Delivery Optimization",
+            os.path.join(
+                os.getenv("SystemRoot", "C:\\Windows"),
+                "SoftwareDistribution",
+                "DeliveryOptimization",
+            ),
+            "Windows Update delivery optimization cache",
+            False,
+        ),
+        (
+            "Windows Updates",
+            os.path.join(
+                os.getenv("SystemRoot", "C:\\Windows"),
+                "SoftwareDistribution",
+                "Download",
+            ),
+            "Windows Update downloads",
+            False,
+        ),
+        (
+            "Windows.old",
+            os.path.join(os.getenv("SystemRoot", "C:\\Windows"), "..", "Windows.old"),
+            "Previous Windows installation files (removes rollback option)",
+            True,
+        ),
+        (
+            "Spotify Cache",
+            os.path.join(
+                os.getenv("USERPROFILE", ""), "AppData", "Local", "Spotify", "Data"
+            ),
+            "Spotify data cache",
+            False,
+        ),
+        (
+            "Windows Error Reporting",
+            os.path.join(
+                os.getenv("USERPROFILE", ""),
+                "AppData",
+                "Local",
+                "Microsoft",
+                "Windows",
+                "WER",
+            ),
+            "Windows Error Reporting crash reports",
+            False,
+        ),
+        (
+            "Microsoft Store Cache",
+            os.path.join(
+                os.getenv("LOCALAPPDATA", ""),
+                "Packages",
+                "Microsoft.WindowsStore_8wekyb3d8bbwe",
+                "LocalCache",
+            ),
+            "Microsoft Store local cache",
+            False,
+        ),
+        (
+            "Windows WebCache",
+            os.path.join(
+                os.getenv("LOCALAPPDATA", ""), "Microsoft", "Windows", "WebCache"
+            ),
+            "Windows web component cache",
+            False,
+        ),
+        (
+            "Pytest Cache",
+            os.path.join(os.getenv("USERPROFILE", ""), ".pytest_cache"),
+            "Python pytest cache",
+            False,
+        ),
+        (
+            "Ruff Cache",
+            os.path.join(os.getenv("USERPROFILE", ""), ".cache", "ruff"),
+            "Ruff linter cache",
+            False,
+        ),
+        (
+            "Mypy Cache",
+            os.path.join(os.getenv("USERPROFILE", ""), ".mypy_cache"),
+            "Mypy type checker cache",
+            False,
+        ),
+        (
+            "Corepack Cache",
+            os.path.join(os.getenv("LOCALAPPDATA", ""), "node", "corepack"),
+            "Node Corepack package manager cache",
+            False,
+        ),
+        (
+            "pip Cache",
+            os.path.join(
+                os.getenv("USERPROFILE", ""), "AppData", "Local", "pip", "cache"
+            ),
+            "Python pip package cache",
+            False,
+        ),
+        (
+            "npm Cache",
+            os.path.join(os.getenv("USERPROFILE", ""), "AppData", "Local", "npm-cache"),
+            "npm package manager cache",
+            False,
+        ),
+        (
+            "Yarn Cache",
+            os.path.join(
+                os.getenv("USERPROFILE", ""), "AppData", "Local", "Yarn", "Cache"
+            ),
+            "Yarn package manager cache",
+            False,
+        ),
+        (
+            "Visual Studio Cache",
+            os.path.join(
+                os.getenv("USERPROFILE", ""),
+                "AppData",
+                "Local",
+                "Microsoft",
+                "VisualStudio",
+            ),
+            "Visual Studio local cache files",
+            False,
+        ),
+        (
+            "VS Code Cache",
+            os.path.join(
+                os.getenv("USERPROFILE", ""), "AppData", "Roaming", "Code", "Cache"
+            ),
+            "Visual Studio Code cache",
+            False,
+        ),
+        (
+            "VS Code Cached Data",
+            os.path.join(
+                os.getenv("USERPROFILE", ""), "AppData", "Roaming", "Code", "CachedData"
+            ),
+            "Visual Studio Code cached data",
+            False,
+        ),
+        (
+            "VS Code Logs",
+            os.path.join(os.getenv("APPDATA", ""), "Code", "logs"),
+            "Visual Studio Code log files",
+            False,
+        ),
+        (
+            "uv Cache",
+            os.path.join(os.getenv("LOCALAPPDATA", ""), "uv", "cache"),
+            "uv Python package manager cache",
+            False,
+        ),
+        (
+            "Poetry Cache",
+            os.path.join(os.getenv("LOCALAPPDATA", ""), "pypoetry", "Cache"),
+            "Poetry Python package manager cache",
+            False,
+        ),
+        (
+            "Bun Cache",
+            os.path.join(os.getenv("LOCALAPPDATA", ""), "bun", "install", "cache"),
+            "Bun JavaScript runtime cache",
+            False,
+        ),
+        (
+            "pnpm Cache",
+            os.path.join(os.getenv("LOCALAPPDATA", ""), "pnpm-cache"),
+            "pnpm package manager cache",
+            False,
+        ),
         # With confirmation (True)
-        ("Edge Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'Microsoft', 'Edge', 'User Data', 'Default', 'Cache'),
-            "Microsoft Edge browser cache", True),
-        ("Chrome Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'Google', 'Chrome', 'User Data', 'Default', 'Cache'),
-            "Google Chrome browser cache", True),
-        ("Chrome Code Cache", os.path.join(os.getenv('LOCALAPPDATA', ''), 'Google', 'Chrome', 'User Data', 'Default', 'Code Cache'),
-            "Google Chrome JavaScript code cache", True),
-        ("Chrome GPU Cache", os.path.join(os.getenv('LOCALAPPDATA', ''), 'Google', 'Chrome', 'User Data', 'Default', 'GPUCache'),
-            "Google Chrome GPU cache", True),
-        ("Chrome Service Worker Cache", os.path.join(os.getenv('LOCALAPPDATA', ''), 'Google', 'Chrome', 'User Data', 'Default', 'Service Worker', 'CacheStorage'),
-            "Google Chrome service worker offline cache", True),
-        ("Edge Code Cache", os.path.join(os.getenv('LOCALAPPDATA', ''), 'Microsoft', 'Edge', 'User Data', 'Default', 'Code Cache'),
-            "Microsoft Edge JavaScript code cache", True),
-        ("Edge GPU Cache", os.path.join(os.getenv('LOCALAPPDATA', ''), 'Microsoft', 'Edge', 'User Data', 'Default', 'GPUCache'),
-            "Microsoft Edge GPU cache", True),
-        ("Edge Service Worker Cache", os.path.join(os.getenv('LOCALAPPDATA', ''), 'Microsoft', 'Edge', 'User Data', 'Default', 'Service Worker', 'CacheStorage'),
-            "Microsoft Edge service worker offline cache", True),
-        ("Direct3D Shader Cache", os.path.join(os.getenv('LOCALAPPDATA', ''), 'D3DSCache'),
-            "Direct3D shader cache (may cause shader recompilation)", True),
-        ("NVIDIA GL Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'NVIDIA', 'GLCache'),
-            "NVIDIA OpenGL cache (may cause temporary shader recompilation)", True),
-        ("NVIDIA DX Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'NVIDIA', 'DXCache'),
-            "NVIDIA DirectX cache (may cause temporary graphics reload)", True),
-        ("Prefetch", os.path.join(os.getenv('SystemRoot', 'C:\\Windows'), 'Prefetch'),
-            "System prefetch files (may slow initial program loading if cleared)", True),
-        ("Recycle Bin", os.path.join(os.getenv('SystemDrive', 'C:'), '$Recycle.Bin'),
-            "Files in the Recycle Bin (permanent deletion)", True),
-        ("Gradle Cache", os.path.join(os.getenv('USERPROFILE', ''), '.gradle', 'caches'),
-            "Gradle build cache (may require re-downloading dependencies)", True),
-        ("Gradle Temp", os.path.join(os.getenv('USERPROFILE', ''), '.gradle', '.tmp'),
-            "Gradle temp files (may require re-downloading dependencies)", True),
-        ("Windows Logs", os.path.join(os.getenv('SystemRoot', 'C:\\Windows'), 'Logs'),
-            "Windows diagnostic and update log files", True),
-        ("Discord Cache", os.path.join(os.getenv('APPDATA', ''), 'discord', 'Cache'),
-            "Discord application cache", True),
-        ("Discord Code Cache", os.path.join(os.getenv('APPDATA', ''), 'discord', 'Code Cache'),
-            "Discord code cache", True),
-        ("Steam HTML Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'Steam', 'htmlcache'),
-            "Steam embedded browser cache", True),
-        ("Steam Shader Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'Steam', 'shadercache'),
-            "Steam shader cache (may recompile shaders)", True),
-        ("Epic Games Cache", os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Local', 'EpicGamesLauncher', 'Saved', 'webcache'),
-            "Epic Games Launcher web cache", True),
-        ("Battle.net Cache", os.path.join(os.getenv('PROGRAMDATA', 'C:\\ProgramData'), 'Battle.net', 'Cache'),
-            "Battle.net application cache", True),
-        ("Adobe Media Cache", os.path.join(os.getenv('APPDATA', ''), 'Adobe', 'Common', 'Media Cache Files'),
-            "Adobe media cache files", True),
-        ("Intel Shader Cache", os.path.join(os.getenv('LOCALAPPDATA', ''), 'Intel', 'ShaderCache'),
-            "Intel GPU shader cache (may cause shader recompilation)", True),
-        ("AMD DX Cache", os.path.join(os.getenv('LOCALAPPDATA', ''), 'AMD', 'DxCache'),
-            "AMD DirectX shader cache (may cause shader recompilation)", True),
-        ("Teams Cache", os.path.join(os.getenv('APPDATA', ''), 'Microsoft', 'Teams', 'Cache'),
-            "Microsoft Teams application cache", True),
-        ("Slack Cache", os.path.join(os.getenv('APPDATA', ''), 'Slack', 'Cache'),
-            "Slack application cache", True),
-        ("Zoom Cache", os.path.join(os.getenv('APPDATA', ''), 'Zoom', 'data'),
-            "Zoom application data cache", True),
-        ("Brave Cache", os.path.join(os.getenv('LOCALAPPDATA', ''), 'BraveSoftware', 'Brave-Browser', 'User Data', 'Default', 'Cache'),
-            "Brave browser cache", True),
+        (
+            "Edge Cache",
+            os.path.join(
+                os.getenv("USERPROFILE", ""),
+                "AppData",
+                "Local",
+                "Microsoft",
+                "Edge",
+                "User Data",
+                "Default",
+                "Cache",
+            ),
+            "Microsoft Edge browser cache",
+            True,
+        ),
+        (
+            "Edge Code Cache",
+            os.path.join(
+                os.getenv("LOCALAPPDATA", ""),
+                "Microsoft",
+                "Edge",
+                "User Data",
+                "Default",
+                "Code Cache",
+            ),
+            "Microsoft Edge JavaScript code cache",
+            True,
+        ),
+        (
+            "Edge GPU Cache",
+            os.path.join(
+                os.getenv("LOCALAPPDATA", ""),
+                "Microsoft",
+                "Edge",
+                "User Data",
+                "Default",
+                "GPUCache",
+            ),
+            "Microsoft Edge GPU cache",
+            True,
+        ),
+        (
+            "Edge Service Worker Cache",
+            os.path.join(
+                os.getenv("LOCALAPPDATA", ""),
+                "Microsoft",
+                "Edge",
+                "User Data",
+                "Default",
+                "Service Worker",
+                "CacheStorage",
+            ),
+            "Microsoft Edge service worker offline cache",
+            True,
+        ),
+        (
+            "Chrome Cache",
+            os.path.join(
+                os.getenv("USERPROFILE", ""),
+                "AppData",
+                "Local",
+                "Google",
+                "Chrome",
+                "User Data",
+                "Default",
+                "Cache",
+            ),
+            "Google Chrome browser cache",
+            True,
+        ),
+        (
+            "Chrome Code Cache",
+            os.path.join(
+                os.getenv("LOCALAPPDATA", ""),
+                "Google",
+                "Chrome",
+                "User Data",
+                "Default",
+                "Code Cache",
+            ),
+            "Google Chrome JavaScript code cache",
+            True,
+        ),
+        (
+            "Chrome GPU Cache",
+            os.path.join(
+                os.getenv("LOCALAPPDATA", ""),
+                "Google",
+                "Chrome",
+                "User Data",
+                "Default",
+                "GPUCache",
+            ),
+            "Google Chrome GPU cache",
+            True,
+        ),
+        (
+            "Chrome Service Worker Cache",
+            os.path.join(
+                os.getenv("LOCALAPPDATA", ""),
+                "Google",
+                "Chrome",
+                "User Data",
+                "Default",
+                "Service Worker",
+                "CacheStorage",
+            ),
+            "Google Chrome service worker offline cache",
+            True,
+        ),
+        (
+            "Direct3D Shader Cache",
+            os.path.join(os.getenv("LOCALAPPDATA", ""), "D3DSCache"),
+            "Direct3D shader cache (may cause shader recompilation)",
+            True,
+        ),
+        (
+            "NVIDIA GL Cache",
+            os.path.join(
+                os.getenv("USERPROFILE", ""), "AppData", "Local", "NVIDIA", "GLCache"
+            ),
+            "NVIDIA OpenGL cache (may cause temporary shader recompilation)",
+            True,
+        ),
+        (
+            "NVIDIA DX Cache",
+            os.path.join(
+                os.getenv("USERPROFILE", ""), "AppData", "Local", "NVIDIA", "DXCache"
+            ),
+            "NVIDIA DirectX cache (may cause temporary graphics reload)",
+            True,
+        ),
+        (
+            "Prefetch",
+            os.path.join(os.getenv("SystemRoot", "C:\\Windows"), "Prefetch"),
+            "System prefetch files (may slow initial program loading if cleared)",
+            True,
+        ),
+        (
+            "Recycle Bin",
+            os.path.join(os.getenv("SystemDrive", "C:"), "$Recycle.Bin"),
+            "Files in the Recycle Bin (permanent deletion)",
+            True,
+        ),
+        (
+            "Gradle Cache",
+            os.path.join(os.getenv("USERPROFILE", ""), ".gradle", "caches"),
+            "Gradle build cache (may require re-downloading dependencies)",
+            True,
+        ),
+        (
+            "Gradle Temp",
+            os.path.join(os.getenv("USERPROFILE", ""), ".gradle", ".tmp"),
+            "Gradle temp files (may require re-downloading dependencies)",
+            True,
+        ),
+        (
+            "Windows Logs",
+            os.path.join(os.getenv("SystemRoot", "C:\\Windows"), "Logs"),
+            "Windows diagnostic and update log files",
+            True,
+        ),
+        (
+            "Discord Cache",
+            os.path.join(os.getenv("APPDATA", ""), "discord", "Cache"),
+            "Discord application cache",
+            True,
+        ),
+        (
+            "Discord Code Cache",
+            os.path.join(os.getenv("APPDATA", ""), "discord", "Code Cache"),
+            "Discord code cache",
+            True,
+        ),
+        (
+            "Steam HTML Cache",
+            os.path.join(
+                os.getenv("USERPROFILE", ""), "AppData", "Local", "Steam", "htmlcache"
+            ),
+            "Steam embedded browser cache",
+            True,
+        ),
+        (
+            "Steam Shader Cache",
+            os.path.join(
+                os.getenv("USERPROFILE", ""), "AppData", "Local", "Steam", "shadercache"
+            ),
+            "Steam shader cache (may recompile shaders)",
+            True,
+        ),
+        (
+            "Epic Games Cache",
+            os.path.join(
+                os.getenv("USERPROFILE", ""),
+                "AppData",
+                "Local",
+                "EpicGamesLauncher",
+                "Saved",
+                "webcache",
+            ),
+            "Epic Games Launcher web cache",
+            True,
+        ),
+        (
+            "Battle.net Cache",
+            os.path.join(
+                os.getenv("PROGRAMDATA", "C:\\ProgramData"), "Battle.net", "Cache"
+            ),
+            "Battle.net application cache",
+            True,
+        ),
+        (
+            "Adobe Media Cache",
+            os.path.join(
+                os.getenv("APPDATA", ""), "Adobe", "Common", "Media Cache Files"
+            ),
+            "Adobe media cache files",
+            True,
+        ),
+        (
+            "Intel Shader Cache",
+            os.path.join(os.getenv("LOCALAPPDATA", ""), "Intel", "ShaderCache"),
+            "Intel GPU shader cache (may cause shader recompilation)",
+            True,
+        ),
+        (
+            "AMD DX Cache",
+            os.path.join(os.getenv("LOCALAPPDATA", ""), "AMD", "DxCache"),
+            "AMD DirectX shader cache (may cause shader recompilation)",
+            True,
+        ),
+        (
+            "Teams Cache",
+            os.path.join(os.getenv("APPDATA", ""), "Microsoft", "Teams", "Cache"),
+            "Microsoft Teams application cache",
+            True,
+        ),
+        (
+            "Slack Cache",
+            os.path.join(os.getenv("APPDATA", ""), "Slack", "Cache"),
+            "Slack application cache",
+            True,
+        ),
+        (
+            "Zoom Cache",
+            os.path.join(os.getenv("APPDATA", ""), "Zoom", "data"),
+            "Zoom application data cache",
+            True,
+        ),
+        (
+            "Brave Cache",
+            os.path.join(
+                os.getenv("LOCALAPPDATA", ""),
+                "BraveSoftware",
+                "Brave-Browser",
+                "User Data",
+                "Default",
+                "Cache",
+            ),
+            "Brave browser cache",
+            True,
+        ),
     ]
-    return temp_dirs
+    return [entry for entry in temp_dirs if is_trusted_cleanup_path(entry[1], entry[0])]

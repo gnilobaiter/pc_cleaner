@@ -80,7 +80,10 @@ def test_flush_dns_reports_success_and_failure(monkeypatch):
     run_mock.assert_called_once_with(["ipconfig", "/flushdns"], check=True)
     assert any("successfully" in call.args[0] for call in status_mock.call_args_list)
 
-    monkeypatch.setattr("src.cleaner.subprocess.run", Mock(side_effect=subprocess.CalledProcessError(1, "ipconfig")))
+    monkeypatch.setattr(
+        "src.cleaner.subprocess.run",
+        Mock(side_effect=subprocess.CalledProcessError(1, "ipconfig")),
+    )
     cleaner.flush_dns()
     assert any("Failed to flush" in call.args[0] for call in status_mock.call_args_list)
 
@@ -88,7 +91,10 @@ def test_flush_dns_reports_success_and_failure(monkeypatch):
 def test_run_skips_declined_entries_and_prints_total(monkeypatch):
     cleaner = Cleaner()
     status_mock = Mock()
-    monkeypatch.setattr("src.cleaner.get_temp_dirs", lambda: [("Safe", "safe", "", False), ("Ask", "ask", "", True)])
+    monkeypatch.setattr(
+        "src.cleaner.get_temp_dirs",
+        lambda: [("Safe", "safe", "", False), ("Ask", "ask", "", True)],
+    )
     monkeypatch.setattr("src.cleaner.get_user_confirmation", lambda *_: False)
     monkeypatch.setattr(cleaner, "clear_folder", lambda *_: 2048)
     monkeypatch.setattr(cleaner, "flush_dns", Mock())
@@ -99,4 +105,7 @@ def test_run_skips_declined_entries_and_prints_total(monkeypatch):
 
     assert cleaner.total_deleted_size == 2048
     assert any("Skipping Ask" in call.args[0] for call in status_mock.call_args_list)
-    assert any("Total space freed: 2.00 KB" in call.args[0] for call in status_mock.call_args_list)
+    assert any(
+        "Total space freed: 2.00 KB" in call.args[0]
+        for call in status_mock.call_args_list
+    )

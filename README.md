@@ -26,11 +26,11 @@ Below is a list of directories that PC Cleaner targets for cleanup. Some directo
 | Internet Cache          | `%USERPROFILE%\AppData\Local\Microsoft\Windows\INetCache`            | Internet Explorer and Edge browser cache   | No                    |
 | Thumbnail Cache         | `%USERPROFILE%\AppData\Local\Microsoft\Windows\Explorer`             | Thumbnail cache for file explorer          | No                    |
 | Crash Dumps             | `%USERPROFILE%\AppData\Local\CrashDumps`                             | Application crash dump files               | No                    |
-| Live Kernel Reports     | `C:\Windows\LiveKernelReports`                                       | System diagnostic reports                  | No                    |
-| Event Logs              | `C:\Windows\System32\winevt\Logs`                                    | Windows event log files                    | No                    |
+| Live Kernel Reports     | `C:\Windows\LiveKernelReports`                                       | System diagnostic reports                  | Yes                   |
+| Event Logs              | `C:\Windows\System32\winevt\Logs`                                    | Windows event log files                    | Yes                   |
 | Delivery Optimization   | `C:\Windows\SoftwareDistribution\DeliveryOptimization`               | Windows Update delivery optimization cache | No                    |
 | Windows Updates         | `C:\Windows\SoftwareDistribution\Download`                           | Windows Update downloads                   | No                    |
-| Windows.old             | `C:\Windows.old`                                                     | Previous Windows installation files        | No                    |
+| Windows.old             | `C:\Windows.old`                                                     | Previous Windows installation files        | Yes                   |
 | Spotify Cache           | `%USERPROFILE%\AppData\Local\Spotify\Data`                           | Spotify data cache                         | No                    |
 | Windows Error Reporting | `%USERPROFILE%\AppData\Local\Microsoft\Windows\WER`                  | Windows Error Reporting crash reports      | No                    |
 | Microsoft Store Cache   | `%LOCALAPPDATA%\Packages\Microsoft.WindowsStore_8wekyb3d8bbwe\LocalCache` | Microsoft Store local cache           | No                    |
@@ -51,13 +51,13 @@ Below is a list of directories that PC Cleaner targets for cleanup. Some directo
 | VS Code Cached Data     | `%APPDATA%\Code\CachedData`                                          | Visual Studio Code cached data             | No                    |
 | VS Code Logs            | `%APPDATA%\Code\logs`                                                | Visual Studio Code log files               | No                    |
 | Edge Cache              | `%USERPROFILE%\AppData\Local\Microsoft\Edge\User Data\Default\Cache` | Microsoft Edge browser cache               | Yes                   |
+| Edge Code Cache         | `%LOCALAPPDATA%\Microsoft\Edge\User Data\Default\Code Cache`         | Microsoft Edge JavaScript code cache       | Yes                   |
+| Edge GPU Cache          | `%LOCALAPPDATA%\Microsoft\Edge\User Data\Default\GPUCache`           | Microsoft Edge GPU cache                   | Yes                   |
+| Edge Service Worker Cache | `%LOCALAPPDATA%\Microsoft\Edge\User Data\Default\Service Worker\CacheStorage` | Microsoft Edge service worker offline cache | Yes              |
 | Chrome Cache            | `%USERPROFILE%\AppData\Local\Google\Chrome\User Data\Default\Cache`  | Google Chrome browser cache                | Yes                   |
 | Chrome Code Cache       | `%LOCALAPPDATA%\Google\Chrome\User Data\Default\Code Cache`          | Google Chrome JavaScript code cache        | Yes                   |
 | Chrome GPU Cache        | `%LOCALAPPDATA%\Google\Chrome\User Data\Default\GPUCache`            | Google Chrome GPU cache                    | Yes                   |
 | Chrome Service Worker Cache | `%LOCALAPPDATA%\Google\Chrome\User Data\Default\Service Worker\CacheStorage` | Google Chrome service worker offline cache | Yes             |
-| Edge Code Cache         | `%LOCALAPPDATA%\Microsoft\Edge\User Data\Default\Code Cache`         | Microsoft Edge JavaScript code cache       | Yes                   |
-| Edge GPU Cache          | `%LOCALAPPDATA%\Microsoft\Edge\User Data\Default\GPUCache`           | Microsoft Edge GPU cache                   | Yes                   |
-| Edge Service Worker Cache | `%LOCALAPPDATA%\Microsoft\Edge\User Data\Default\Service Worker\CacheStorage` | Microsoft Edge service worker offline cache | Yes              |
 | Brave Cache             | `%LOCALAPPDATA%\BraveSoftware\Brave-Browser\User Data\Default\Cache` | Brave browser cache                        | Yes                   |
 | Direct3D Shader Cache   | `%LOCALAPPDATA%\D3DSCache`                                           | Direct3D shader cache                      | Yes                   |
 | NVIDIA GL Cache         | `%USERPROFILE%\AppData\Local\NVIDIA\GLCache`                         | NVIDIA OpenGL cache                        | Yes                   |

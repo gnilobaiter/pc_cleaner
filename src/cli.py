@@ -4,7 +4,7 @@ from src.utils import print_banner
 
 def start_cli() -> int:
     print_banner()
-    
+
     cleaner = Cleaner(dry_run=False)
     try:
         cleaner.run()

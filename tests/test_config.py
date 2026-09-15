@@ -1,7 +1,7 @@
 from src import config
 
 
-def test_get_temp_dirs_uses_environment_values(monkeypatch):
+def test_get_temp_dirs_skips_untrusted_environment_roots(monkeypatch):
     monkeypatch.setenv("SystemRoot", r"D:\\Windows")
     monkeypatch.setenv("SystemDrive", "D:")
     monkeypatch.setenv("USERPROFILE", r"D:\\Users\\Tester")
@@ -11,12 +11,7 @@ def test_get_temp_dirs_uses_environment_values(monkeypatch):
 
     directories = config.get_temp_dirs()
 
-    assert directories
-    assert all(len(entry) == 4 for entry in directories)
-    assert all(isinstance(entry[3], bool) for entry in directories)
-    assert any(name == "System Temp" and path == r"D:\\Windows\Temp" for name, path, _, _ in directories)
-    assert any(name == "Recycle Bin" and path == r"D:$Recycle.Bin" for name, path, _, _ in directories)
-    assert any(name == "VS Code Logs" and path.endswith(r"Code\logs") for name, path, _, _ in directories)
+    assert directories == []
 
 
 def test_get_temp_dirs_has_confirmed_and_unconfirmed_entries():
@@ -25,3 +20,14 @@ def test_get_temp_dirs_has_confirmed_and_unconfirmed_entries():
     assert any(needs_confirmation for _, _, _, needs_confirmation in directories)
     assert any(not needs_confirmation for _, _, _, needs_confirmation in directories)
     assert len({(name, path) for name, path, _, _ in directories}) == len(directories)
+
+
+def test_destructive_system_targets_require_confirmation():
+    directories = {
+        name: needs_confirmation
+        for name, _, _, needs_confirmation in config.get_temp_dirs()
+    }
+
+    assert directories["Live Kernel Reports"] is True
+    assert directories["Event Logs"] is True
+    assert directories["Windows.old"] is True
