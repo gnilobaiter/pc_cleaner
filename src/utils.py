@@ -1,11 +1,12 @@
-import platform
 import os
+import platform
 import sys
 from pathlib import Path
+
 from src.config import VERSION
 
 try:
-    from colorama import init, Fore, Style
+    from colorama import Fore, Style, init
     init()
     USE_COLORS = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
 except ImportError:

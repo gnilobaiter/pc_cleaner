@@ -1,6 +1,7 @@
 from src.cleaner import Cleaner
 from src.utils import print_banner
 
+
 def start_cli() -> int:
     print_banner()
     
@@ -11,6 +12,6 @@ def start_cli() -> int:
     except KeyboardInterrupt:
         cleaner.print_status("Stopped by user", error=True)
         return 1
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         cleaner.print_status(f"Something broke: {e}", error=True)
         return 1

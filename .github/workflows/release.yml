@@ -7,7 +7,9 @@ on:
     paths:
       - 'src/**'
       - 'requirements.txt'
+      - 'requirements-test.txt'
       - 'main.py'
+      - 'tests/**'
 
 permissions:
   contents: write
@@ -61,8 +63,29 @@ jobs:
           fi
         shell: bash
 
-  build-and-release:
+  tests:
     needs: check-commit-message
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.9'
+
+      - name: Install test dependencies
+        run: python -m pip install -r requirements-test.txt
+        shell: powershell
+
+      - name: Run pytest
+        run: python -m pytest tests
+        shell: powershell
+
+  build-and-release:
+    needs: [check-commit-message, tests]
     if: needs.check-commit-message.outputs.should_build == 'true'
     runs-on: windows-latest
 
@@ -97,24 +120,25 @@ jobs:
             exit 1
           }
           Write-Host "Extracted VERSION: $VERSION"
-          Write-Output "VERSION=$VERSION" | Add-Content -Path $env:GITHUB_ENV
+          "version=$VERSION" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
         shell: powershell
 
       - name: Debug VERSION
         run: |
-          echo VERSION from env: ${{ env.VERSION }}
-        shell: bash
+          Write-Host "VERSION: ${{ steps.get_version.outputs.version }}"
+        shell: powershell
 
       - name: Check if tag exists and create if not
         run: |
+          $VERSION = "${{ steps.get_version.outputs.version }}"
           git fetch --tags
-          git rev-parse -q --verify "refs/tags/$env:VERSION"
+          git rev-parse -q --verify "refs/tags/$VERSION"
           if ($LASTEXITCODE -ne 0) {
-            Write-Host "Creating tag $env:VERSION..."
-            git tag $env:VERSION
-            git push origin $env:VERSION
+            Write-Host "Creating tag $VERSION..."
+            git tag $VERSION
+            git push origin $VERSION
           } else {
-            Write-Host "Tag $env:VERSION already exists, skipping..."
+            Write-Host "Tag $VERSION already exists, skipping..."
           }
         shell: powershell
 
@@ -140,8 +164,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ env.VERSION }}
-          name: PC Cleaner ${{ env.VERSION }}
+          tag_name: ${{ steps.get_version.outputs.version }}
+          name: PC Cleaner ${{ steps.get_version.outputs.version }}
           draft: false
           prerelease: false
           files: releases/PC_CLEANER.exe

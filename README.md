@@ -100,6 +100,17 @@ Below is a list of directories that PC Cleaner targets for cleanup. Some directo
    python main.py
    ```
 
+### Tests
+
+The test suite uses mocks for filesystem deletion, DNS flushing, console input, and CLI output, so it does not clean any real directories or change system settings. Running tests requires Python 3.10+ (the application itself supports Python 3.8+).
+
+```powershell
+python -m pip install -r requirements-test.txt
+python -m pytest tests
+```
+
+The GitHub Actions release workflow runs this suite before building the executable. A release build runs only when the tests pass and the existing versioned-commit conditions are met.
+
 ### Building the executable
 
 ```bat

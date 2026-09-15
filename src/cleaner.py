@@ -3,7 +3,8 @@ import subprocess
 from pathlib import Path
 
 from src.config import get_temp_dirs
-from src.utils import convert_size, print_status, has_access, get_user_confirmation
+from src.utils import convert_size, get_user_confirmation, has_access, print_status
+
 
 class Cleaner:
     def __init__(self, dry_run: bool = False):
@@ -37,9 +38,9 @@ class Cleaner:
                         deleted_size += size
                 except PermissionError:
                     pass
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001
                     self.print_status(f"Error processing {item}: {e}", error=True, emoji="[❗]")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             self.print_status(f"Failed to process {folder}: {e}", error=True, emoji="[❗]")
         return deleted_size
 

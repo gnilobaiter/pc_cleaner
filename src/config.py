@@ -1,11 +1,10 @@
 import os
-from typing import List, Tuple
 
 # This version using in Github Actions and CLI
-VERSION = "v1.0.4"
+VERSION = "v1.1.0"
 
-def get_temp_dirs() -> List[Tuple[str, str, str, bool]]:
-    temp_dirs: List[Tuple[str, str, str, bool]] = [
+def get_temp_dirs() -> list[tuple[str, str, str, bool]]:
+    temp_dirs: list[tuple[str, str, str, bool]] = [
         # Without confirmation (False)
         ("System Temp", os.path.join(os.getenv('SystemRoot', 'C:\\Windows'), 'Temp'), 
             "Temporary system files", False),
