@@ -1,120 +1,153 @@
 # PC Cleaner
 
-A system cleanup utility for Windows.
+A Windows cleanup utility with guarded system cleanup, reusable presets, and a fully mocked test suite.
 
 ## Features
-* Cleans system and user temporary files.
-* Cleans browser, application, development and launcher caches.
-* Flushes DNS cache.
-* Purges pip, npm, yarn, pnpm, uv, Poetry, Bun, Gradle caches.
+
+- Cleans Windows, browser, application, development-tool, launcher, and graphics caches.
+- Removes JetBrains AF_UNIX socket reparse points without following links; protected directory junctions are skipped silently.
+- Empties Recycle Bins on all drives through the Windows Shell API.
+- Flushes the DNS resolver cache.
+- Saves the last yes/no cleanup choices in `%APPDATA%\PC_CLEANER\preset.json` and offers to reuse them at the next launch.
+- Requires confirmation for cleanup that removes diagnostics, triggers large downloads/rebuilds, or has another meaningful side effect.
 
 ## Download
-Download the latest `.exe` from [**Releases**](https://github.com/gnilobaiter/pc_cleaner/releases) and run it — no Python required.
 
-## Cleaned Directories
-Below is a list of directories that PC Cleaner targets for cleanup. Some directories are cleaned automatically, while others require user confirmation due to potential impacts.
+Download the latest `.exe` from [Releases](https://github.com/gnilobaiter/pc_cleaner/releases) and run it—no Python installation is required.
 
-<details>
-<summary>Folders list</summary>
+## Cleanup order
 
-| Directory Name          | Path                                                                 | Description                                | Requires Confirmation |
-| ----------------------- | -------------------------------------------------------------------- | ------------------------------------------ | --------------------- |
-| System Temp             | `C:\Windows\Temp`                                                    | Temporary system files                     | No                    |
-| User Temp               | `%USERPROFILE%\AppData\Local\Temp`                                   | Temporary user files in Local directory    | No                    |
-| User Temp               | `%USERPROFILE%\AppData\LocalLow\Temp`                                | Temporary user files in LocalLow directory | No                    |
-| User Cache              | `%USERPROFILE%\.cache`                                               | Cache directory in user directory (.cache) | No                    |
-| Internet Cache          | `%USERPROFILE%\AppData\Local\Microsoft\Windows\INetCache`            | Internet Explorer and Edge browser cache   | No                    |
-| Thumbnail Cache         | `%USERPROFILE%\AppData\Local\Microsoft\Windows\Explorer`             | Thumbnail cache for file explorer          | No                    |
-| Crash Dumps             | `%USERPROFILE%\AppData\Local\CrashDumps`                             | Application crash dump files               | No                    |
-| Live Kernel Reports     | `C:\Windows\LiveKernelReports`                                       | System diagnostic reports                  | Yes                   |
-| Event Logs              | `C:\Windows\System32\winevt\Logs`                                    | Windows event log files                    | Yes                   |
-| Delivery Optimization   | `C:\Windows\SoftwareDistribution\DeliveryOptimization`               | Windows Update delivery optimization cache | No                    |
-| Windows Updates         | `C:\Windows\SoftwareDistribution\Download`                           | Windows Update downloads                   | No                    |
-| Windows.old             | `C:\Windows.old`                                                     | Previous Windows installation files        | Yes                   |
-| Spotify Cache           | `%USERPROFILE%\AppData\Local\Spotify\Data`                           | Spotify data cache                         | No                    |
-| Windows Error Reporting | `%USERPROFILE%\AppData\Local\Microsoft\Windows\WER`                  | Windows Error Reporting crash reports      | No                    |
-| Microsoft Store Cache   | `%LOCALAPPDATA%\Packages\Microsoft.WindowsStore_8wekyb3d8bbwe\LocalCache` | Microsoft Store local cache           | No                    |
-| Windows WebCache        | `%LOCALAPPDATA%\Microsoft\Windows\WebCache`                          | Windows web component cache                | No                    |
-| Pytest Cache            | `%USERPROFILE%\.pytest_cache`                                        | Python pytest cache                        | No                    |
-| Ruff Cache              | `%USERPROFILE%\.cache\ruff`                                         | Ruff linter cache                          | No                    |
-| Mypy Cache              | `%USERPROFILE%\.mypy_cache`                                         | Mypy type checker cache                    | No                    |
-| Corepack Cache          | `%LOCALAPPDATA%\node\corepack`                                      | Node Corepack package manager cache        | No                    |
-| pip Cache               | `%USERPROFILE%\AppData\Local\pip\cache`                              | Python pip package cache                   | No                    |
-| npm Cache               | `%USERPROFILE%\AppData\Local\npm-cache`                              | npm package manager cache                  | No                    |
-| Yarn Cache              | `%USERPROFILE%\AppData\Local\Yarn\Cache`                             | Yarn package manager cache                 | No                    |
-| pnpm Cache              | `%LOCALAPPDATA%\pnpm-cache`                                          | pnpm package manager cache                 | No                    |
-| uv Cache                | `%LOCALAPPDATA%\uv\cache`                                            | uv Python package manager cache            | No                    |
-| Poetry Cache            | `%LOCALAPPDATA%\pypoetry\Cache`                                      | Poetry Python package manager cache        | No                    |
-| Bun Cache               | `%LOCALAPPDATA%\bun\install\cache`                                   | Bun JavaScript runtime cache               | No                    |
-| Visual Studio Cache     | `%USERPROFILE%\AppData\Local\Microsoft\VisualStudio`                 | Visual Studio local cache files            | No                    |
-| VS Code Cache           | `%APPDATA%\Code\Cache`                                               | Visual Studio Code cache                   | No                    |
-| VS Code Cached Data     | `%APPDATA%\Code\CachedData`                                          | Visual Studio Code cached data             | No                    |
-| VS Code Logs            | `%APPDATA%\Code\logs`                                                | Visual Studio Code log files               | No                    |
-| Edge Cache              | `%USERPROFILE%\AppData\Local\Microsoft\Edge\User Data\Default\Cache` | Microsoft Edge browser cache               | Yes                   |
-| Edge Code Cache         | `%LOCALAPPDATA%\Microsoft\Edge\User Data\Default\Code Cache`         | Microsoft Edge JavaScript code cache       | Yes                   |
-| Edge GPU Cache          | `%LOCALAPPDATA%\Microsoft\Edge\User Data\Default\GPUCache`           | Microsoft Edge GPU cache                   | Yes                   |
-| Edge Service Worker Cache | `%LOCALAPPDATA%\Microsoft\Edge\User Data\Default\Service Worker\CacheStorage` | Microsoft Edge service worker offline cache | Yes              |
-| Chrome Cache            | `%USERPROFILE%\AppData\Local\Google\Chrome\User Data\Default\Cache`  | Google Chrome browser cache                | Yes                   |
-| Chrome Code Cache       | `%LOCALAPPDATA%\Google\Chrome\User Data\Default\Code Cache`          | Google Chrome JavaScript code cache        | Yes                   |
-| Chrome GPU Cache        | `%LOCALAPPDATA%\Google\Chrome\User Data\Default\GPUCache`            | Google Chrome GPU cache                    | Yes                   |
-| Chrome Service Worker Cache | `%LOCALAPPDATA%\Google\Chrome\User Data\Default\Service Worker\CacheStorage` | Google Chrome service worker offline cache | Yes             |
-| Brave Cache             | `%LOCALAPPDATA%\BraveSoftware\Brave-Browser\User Data\Default\Cache` | Brave browser cache                        | Yes                   |
-| Direct3D Shader Cache   | `%LOCALAPPDATA%\D3DSCache`                                           | Direct3D shader cache                      | Yes                   |
-| NVIDIA GL Cache         | `%USERPROFILE%\AppData\Local\NVIDIA\GLCache`                         | NVIDIA OpenGL cache                        | Yes                   |
-| NVIDIA DX Cache         | `%USERPROFILE%\AppData\Local\NVIDIA\DXCache`                         | NVIDIA DirectX cache                       | Yes                   |
-| Intel Shader Cache      | `%LOCALAPPDATA%\Intel\ShaderCache`                                   | Intel GPU shader cache                     | Yes                   |
-| AMD DX Cache            | `%LOCALAPPDATA%\AMD\DxCache`                                         | AMD DirectX shader cache                   | Yes                   |
-| Prefetch                | `C:\Windows\Prefetch`                                                | System prefetch files                      | Yes                   |
-| Recycle Bin             | `C:\$Recycle.Bin`                                                    | Files in the Recycle Bin                   | Yes                   |
-| Gradle Cache            | `%USERPROFILE%\.gradle\caches`                                       | Gradle build cache                         | Yes                   |
-| Gradle Temp             | `%USERPROFILE%\.gradle\.tmp`                                         | Gradle temp files                          | Yes                   |
-| Windows Logs            | `C:\Windows\Logs`                                                    | Windows diagnostic and update log files    | Yes                   |
-| Discord Cache           | `%APPDATA%\discord\Cache`                                            | Discord application cache                  | Yes                   |
-| Discord Code Cache      | `%APPDATA%\discord\Code Cache`                                       | Discord code cache                         | Yes                   |
-| Steam HTML Cache        | `%LOCALAPPDATA%\Steam\htmlcache`                                     | Steam embedded browser cache               | Yes                   |
-| Steam Shader Cache      | `%LOCALAPPDATA%\Steam\shadercache`                                   | Steam shader cache                         | Yes                   |
-| Epic Games Cache        | `%LOCALAPPDATA%\EpicGamesLauncher\Saved\webcache`                    | Epic Games Launcher web cache              | Yes                   |
-| Battle.net Cache        | `%PROGRAMDATA%\Battle.net\Cache`                                     | Battle.net application cache               | Yes                   |
-| Adobe Media Cache       | `%APPDATA%\Adobe\Common\Media Cache Files`                           | Adobe media cache files                    | Yes                   |
-| Teams Cache             | `%APPDATA%\Microsoft\Teams\Cache`                                    | Microsoft Teams application cache          | Yes                   |
-| Slack Cache             | `%APPDATA%\Slack\Cache`                                              | Slack application cache                    | Yes                   |
-| Zoom Cache              | `%APPDATA%\Zoom\data`                                                | Zoom application data cache                | Yes                   |
+Targets are presented in the following order. Dynamic Firefox and JetBrains entries are added only when matching profile/product directories exist; their prompts include the profile or product directory name.
 
-</details>
+### Windows and system
+
+| Directory | Path | Confirmation |
+| --- | --- | --- |
+| System Temp | `%SystemRoot%\Temp` | No |
+| Delivery Optimization | `%SystemRoot%\SoftwareDistribution\DeliveryOptimization` | No |
+| Windows Updates | `%SystemRoot%\SoftwareDistribution\Download` | Yes |
+| Windows Logs | `%SystemRoot%\Logs` | Yes |
+| Event Logs | `%SystemRoot%\System32\winevt\Logs` | Yes |
+| Prefetch | `%SystemRoot%\Prefetch` | Yes |
+| Live Kernel Reports | `%SystemRoot%\LiveKernelReports` | Yes |
+| Windows.old | `%SystemDrive%\Windows.old` | Yes |
+| Recycle Bin | All drives | Yes |
+
+### User temporary files and diagnostics
+
+| Directory | Path | Confirmation |
+| --- | --- | --- |
+| User Temp | `%LOCALAPPDATA%\Temp` | No |
+| User Temp (LocalLow) | `%USERPROFILE%\AppData\LocalLow\Temp` | No |
+| User Cache | `%USERPROFILE%\.cache` | Yes |
+| Thumbnail Cache | `%LOCALAPPDATA%\Microsoft\Windows\Explorer` | No |
+| Internet Cache | `%LOCALAPPDATA%\Microsoft\Windows\INetCache` | No |
+| Windows WebCache | `%LOCALAPPDATA%\Microsoft\Windows\WebCache` | No |
+| Microsoft Store Cache | `%LOCALAPPDATA%\Packages\Microsoft.WindowsStore_8wekyb3d8bbwe\LocalCache` | No |
+| Crash Dumps | `%LOCALAPPDATA%\CrashDumps` | Yes |
+| Windows Error Reporting | `%LOCALAPPDATA%\Microsoft\Windows\WER` | Yes |
+| System Error Reporting | `%PROGRAMDATA%\Microsoft\Windows\WER` | Yes |
+
+### Browsers
+
+| Directory | Path | Confirmation |
+| --- | --- | --- |
+| Edge Cache | `%LOCALAPPDATA%\Microsoft\Edge\User Data\Default\Cache` | Yes |
+| Edge Code Cache | `%LOCALAPPDATA%\Microsoft\Edge\User Data\Default\Code Cache` | Yes |
+| Edge GPU Cache | `%LOCALAPPDATA%\Microsoft\Edge\User Data\Default\GPUCache` | Yes |
+| Edge Service Worker Cache | `%LOCALAPPDATA%\Microsoft\Edge\User Data\Default\Service Worker\CacheStorage` | Yes |
+| Chrome Cache | `%LOCALAPPDATA%\Google\Chrome\User Data\Default\Cache` | Yes |
+| Chrome Code Cache | `%LOCALAPPDATA%\Google\Chrome\User Data\Default\Code Cache` | Yes |
+| Chrome GPU Cache | `%LOCALAPPDATA%\Google\Chrome\User Data\Default\GPUCache` | Yes |
+| Chrome Service Worker Cache | `%LOCALAPPDATA%\Google\Chrome\User Data\Default\Service Worker\CacheStorage` | Yes |
+| Brave Cache | `%LOCALAPPDATA%\BraveSoftware\Brave-Browser\User Data\Default\Cache` | Yes |
+| Opera Cache | `%LOCALAPPDATA%\Opera Software\Opera Stable\Cache` | Yes |
+| Firefox Cache | `%LOCALAPPDATA%\Mozilla\Firefox\Profiles\*\cache2` | Yes |
+
+### Development tools
+
+| Directory | Path | Confirmation |
+| --- | --- | --- |
+| Pytest Cache | `%USERPROFILE%\.pytest_cache` | No |
+| Ruff Cache | `%USERPROFILE%\.cache\ruff` | No |
+| Mypy Cache | `%USERPROFILE%\.mypy_cache` | No |
+| pip Cache | `%LOCALAPPDATA%\pip\cache` | No |
+| uv Cache | `%LOCALAPPDATA%\uv\cache` | No |
+| Poetry Cache | `%LOCALAPPDATA%\pypoetry\Cache` | No |
+| npm Cache | `%LOCALAPPDATA%\npm-cache` | No |
+| Yarn Cache | `%LOCALAPPDATA%\Yarn\Cache` | No |
+| pnpm Cache | `%LOCALAPPDATA%\pnpm-cache` | No |
+| Corepack Cache | `%LOCALAPPDATA%\node\corepack` | No |
+| Bun Cache | `%LOCALAPPDATA%\bun\install\cache` | No |
+| NuGet HTTP Cache | `%LOCALAPPDATA%\NuGet\v3-cache` | No |
+| NuGet Plugins Cache | `%LOCALAPPDATA%\NuGet\plugins-cache` | No |
+| Go Build Cache | `%LOCALAPPDATA%\go-build` | Yes |
+| Cargo Registry Cache | `%USERPROFILE%\.cargo\registry\cache` | Yes |
+| Gradle Cache | `%USERPROFILE%\.gradle\caches` | Yes |
+| Gradle Temp | `%USERPROFILE%\.gradle\.tmp` | Yes |
+| Visual Studio Cache | `%LOCALAPPDATA%\Microsoft\VisualStudio` | Yes |
+| VS Code Cache | `%APPDATA%\Code\Cache` | No |
+| VS Code Cached Data | `%APPDATA%\Code\CachedData` | No |
+| VS Code Logs | `%APPDATA%\Code\logs` | No |
+| JetBrains Cache | `%LOCALAPPDATA%\JetBrains\*\caches` | Yes |
+| JetBrains Logs | `%LOCALAPPDATA%\JetBrains\*\log` | No |
+
+### Communication and media applications
+
+| Directory | Path | Confirmation |
+| --- | --- | --- |
+| Discord Cache | `%APPDATA%\discord\Cache` | Yes |
+| Discord Code Cache | `%APPDATA%\discord\Code Cache` | Yes |
+| Teams Cache | `%APPDATA%\Microsoft\Teams\Cache` | Yes |
+| Slack Cache | `%APPDATA%\Slack\Cache` | Yes |
+| Zoom Cache | `%APPDATA%\Zoom\data` | Yes |
+| Spotify Cache | `%LOCALAPPDATA%\Spotify\Data` | Yes |
+| Adobe Media Cache | `%APPDATA%\Adobe\Common\Media Cache Files` | Yes |
+
+### Game launchers
+
+| Directory | Path | Confirmation |
+| --- | --- | --- |
+| Steam HTML Cache | `%LOCALAPPDATA%\Steam\htmlcache` | Yes |
+| Steam Shader Cache | `%LOCALAPPDATA%\Steam\shadercache` | Yes |
+| Epic Games Cache | `%LOCALAPPDATA%\EpicGamesLauncher\Saved\webcache` | Yes |
+| Battle.net Cache | `%PROGRAMDATA%\Battle.net\Cache` | Yes |
+
+### Graphics
+
+| Directory | Path | Confirmation |
+| --- | --- | --- |
+| Direct3D Shader Cache | `%LOCALAPPDATA%\D3DSCache` | Yes |
+| NVIDIA GL Cache | `%LOCALAPPDATA%\NVIDIA\GLCache` | Yes |
+| NVIDIA DX Cache | `%LOCALAPPDATA%\NVIDIA\DXCache` | Yes |
+| Intel Shader Cache | `%LOCALAPPDATA%\Intel\ShaderCache` | Yes |
+| AMD DX Cache | `%LOCALAPPDATA%\AMD\DxCache` | Yes |
 
 ## Development
 
-**Requirements:** Python 3.8+, Windows 10+
+Requirements: Python 3.8+ for the application and Python 3.10+ for the test toolchain.
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/gnilobaiter/pc_cleaner
-   cd pc_cleaner
-   ```
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Run:
-   ```bash
-   python main.py
-   ```
+```powershell
+git clone https://github.com/gnilobaiter/pc_cleaner
+cd pc_cleaner
+python -m pip install -r requirements.txt
+python main.py
+```
 
 ### Tests
 
-The test suite uses mocks for filesystem deletion, DNS flushing, console input, and CLI output, so it does not clean any real directories or change system settings. Running tests requires Python 3.10+ (the application itself supports Python 3.8+).
+All destructive filesystem deletion, Recycle Bin, DNS, input, preset, and CLI effects are isolated or mocked. CI enforces at least 95% line coverage.
 
 ```powershell
 python -m pip install -r requirements-test.txt
-python -m pytest tests
+python -m pytest tests --cov=src --cov=main --cov-report=term-missing --cov-fail-under=95
+python -m ruff check .
 ```
 
-The GitHub Actions release workflow runs this suite before building the executable. A release build runs only when the tests pass and the existing versioned-commit conditions are met.
-
-### Building the executable
+### Build
 
 ```bat
 build.bat
 ```
 
-The executable will be in `dist/PC_CLEANER.exe`.
+The executable is created at `dist\PC_CLEANER.exe`.

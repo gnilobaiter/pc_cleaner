@@ -69,11 +69,14 @@ def print_banner() -> None:
 
 
 def convert_size(size_bytes: int) -> str:
-    if size_bytes == 0:
+    if size_bytes <= 0:
         return "0 B"
     units = ("B", "KB", "MB", "GB", "TB")
-    unit_idx = min(len(units) - 1, int((len(str(size_bytes)) - 1) // 3))
-    size = size_bytes / (1024**unit_idx)
+    size = float(size_bytes)
+    unit_idx = 0
+    while size >= 1024 and unit_idx < len(units) - 1:
+        size /= 1024
+        unit_idx += 1
     return f"{size:.2f} {units[unit_idx]}"
 
 
@@ -83,12 +86,16 @@ def has_access(folder: Path) -> bool:
 
 def get_user_confirmation(name: str, description: str) -> bool:
     print_status(f"{name}: {description}", emoji="[❓]")
+    return get_yes_no("Clear this? (y/n): ")
+
+
+def get_yes_no(question: str) -> bool:
     while True:
         q = "[❓]" if _SUPPORTS_EMOJI else "[?]"
         prompt = (
-            f"{Fore.YELLOW}{q} Clear this? (y/n): {Style.RESET_ALL}"
+            f"{Fore.YELLOW}{q} {question}{Style.RESET_ALL}"
             if USE_COLORS
-            else f"{q} Clear this? (y/n): "
+            else f"{q} {question}"
         )
         choice = input(prompt).lower().strip()
         if choice in ("y", "n"):

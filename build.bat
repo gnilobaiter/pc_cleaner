@@ -18,7 +18,6 @@ pyinstaller --name PC_CLEANER ^
     --clean ^
     --onefile ^
     --uac-admin ^
-    --collect-submodules colorama ^
     main.py
 
 echo Build ready! Press enter to leave builder

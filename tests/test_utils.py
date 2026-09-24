@@ -8,9 +8,13 @@ from src import utils
 @pytest.mark.parametrize(
     ("size", "expected"),
     [
+        (-1, "0 B"),
         (0, "0 B"),
         (1, "1.00 B"),
+        (1000, "1000.00 B"),
+        (1023, "1023.00 B"),
         (1024, "1.00 KB"),
+        (1_000_000, "976.56 KB"),
         (1024**2, "1.00 MB"),
         (1024**4, "1.00 TB"),
     ],
@@ -60,6 +64,33 @@ def test_print_status_uses_colors_when_enabled(monkeypatch, capsys):
     assert "reset" in output
 
 
+@pytest.mark.parametrize(
+    ("emoji", "expected_color"),
+    [("[❓]", "yellow"), ("[💽]", "cyan"), ("[🧹]", "magenta")],
+)
+def test_print_status_selects_expected_color(
+    monkeypatch, capsys, emoji, expected_color
+):
+    monkeypatch.setattr(utils, "USE_COLORS", True)
+    monkeypatch.setattr(utils, "_SUPPORTS_EMOJI", True)
+    monkeypatch.setattr(
+        utils,
+        "Fore",
+        Mock(
+            GREEN="green",
+            YELLOW="yellow",
+            CYAN="cyan",
+            RED="red",
+            MAGENTA="magenta",
+        ),
+    )
+    monkeypatch.setattr(utils, "Style", Mock(RESET_ALL="reset"))
+
+    utils.print_status("status", emoji=emoji)
+
+    assert expected_color in capsys.readouterr().out
+
+
 def test_print_banner_without_colors(monkeypatch, capsys):
     monkeypatch.setattr(utils, "USE_COLORS", False)
 
@@ -68,6 +99,18 @@ def test_print_banner_without_colors(monkeypatch, capsys):
     output = capsys.readouterr().out
     assert f"PC_CLEANER {utils.VERSION}" in output
     assert "----" in output
+
+
+def test_print_banner_with_colors(monkeypatch, capsys):
+    monkeypatch.setattr(utils, "USE_COLORS", True)
+    monkeypatch.setattr(utils, "Fore", Mock(RED="red"))
+    monkeypatch.setattr(utils, "Style", Mock(RESET_ALL="reset"))
+
+    utils.print_banner()
+
+    output = capsys.readouterr().out
+    assert "red" in output
+    assert "reset" in output
 
 
 @pytest.mark.parametrize(
@@ -87,3 +130,13 @@ def test_get_user_confirmation_retries_until_valid(monkeypatch, answers, expecte
             call.args[0] == "Please enter 'y' or 'n'" and call.kwargs["error"] is True
             for call in status_mock.call_args_list
         )
+
+
+def test_get_yes_no_uses_custom_english_question(monkeypatch):
+    input_mock = Mock(return_value="y")
+    monkeypatch.setattr(utils, "input", input_mock, raising=False)
+    monkeypatch.setattr(utils, "USE_COLORS", False)
+    monkeypatch.setattr(utils, "_SUPPORTS_EMOJI", False)
+
+    assert utils.get_yes_no("Use the last preset? (y/n): ") is True
+    assert input_mock.call_args.args[0] == "[?] Use the last preset? (y/n): "
