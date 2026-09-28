@@ -56,10 +56,18 @@ class Cleaner:
         ):
             return 0
 
-        deleted_size = 0
         if not folder.exists():
             return 0
 
+        if self.dry_run:
+            return self._estimate_deletable_size(folder)
+
+        try:
+            free_before = self._get_free_bytes(folder)
+        except OSError:
+            free_before = None
+
+        fallback_size = 0
         try:
             items = list(folder.iterdir())
             for item in items:
@@ -67,30 +75,17 @@ class Cleaner:
                     if self._is_reparse_point(item):
                         reparse_size = self._remove_safe_reparse_point(item)
                         if reparse_size is not None:
-                            deleted_size += reparse_size
+                            fallback_size += reparse_size
                     elif item.is_file() or item.is_symlink():
                         size = item.stat().st_size
-                        if not self.dry_run:
-                            item.unlink()
-                        deleted_size += size
+                        item.unlink()
+                        fallback_size += size
                     elif item.is_dir():
-                        size = self.get_directory_size(item)
                         if self._is_reparse_point(item):
                             continue
-                        if self.dry_run:
-                            deleted_size += size
-                        else:
-                            try:
-                                shutil.rmtree(item)
-                                deleted_size += size
-                            except Exception:
-                                remaining_size = (
-                                    self.get_directory_size(item)
-                                    if item.exists()
-                                    else 0
-                                )
-                                deleted_size += max(0, size - remaining_size)
-                                raise
+                        size = self.get_directory_size(item)
+                        shutil.rmtree(item)
+                        fallback_size += size
                 except PermissionError:
                     pass
                 except Exception as error:  # noqa: BLE001
@@ -101,7 +96,40 @@ class Cleaner:
             self.print_status(
                 f"Failed to process {folder}: {error}", error=True, emoji="[❗]"
             )
-        return deleted_size
+
+        if free_before is None:
+            return fallback_size
+        try:
+            free_after = self._get_free_bytes(folder)
+        except OSError:
+            return fallback_size
+        return max(0, free_after - free_before)
+
+    def _estimate_deletable_size(self, folder: Path) -> int:
+        total_size = 0
+        try:
+            for item in folder.iterdir():
+                try:
+                    if self._is_reparse_point(item):
+                        try:
+                            total_size += item.lstat().st_size
+                        except OSError:
+                            pass
+                    elif item.is_file() or item.is_symlink():
+                        total_size += item.stat().st_size
+                    elif item.is_dir():
+                        total_size += self.get_directory_size(item)
+                except PermissionError:
+                    pass
+                except Exception as error:  # noqa: BLE001
+                    self.print_status(
+                        f"Error processing {item}: {error}", error=True, emoji="[❗]"
+                    )
+        except Exception as error:  # noqa: BLE001
+            self.print_status(
+                f"Failed to process {folder}: {error}", error=True, emoji="[❗]"
+            )
+        return total_size
 
     def _remove_safe_reparse_point(self, path: Path) -> Optional[int]:
         try:
@@ -114,9 +142,18 @@ class Cleaner:
         if reparse_tag != IO_REPARSE_TAG_AF_UNIX and not is_file_link:
             return None
 
-        if not self.dry_run:
-            path.unlink()
+        path.unlink()
         return path_stat.st_size
+
+    @staticmethod
+    def _get_free_bytes(path: Path) -> int:
+        free_bytes = ctypes.c_ulonglong(0)
+        result = ctypes.windll.kernel32.GetDiskFreeSpaceExW(
+            str(path), ctypes.byref(free_bytes), None, None
+        )
+        if not result:
+            raise ctypes.WinError()
+        return free_bytes.value
 
     @staticmethod
     def _is_reparse_point(path: Path) -> bool:
@@ -192,9 +229,21 @@ class Cleaner:
             if recycle_bin_info.i64NumItems == 0:
                 continue
 
+            try:
+                free_before = self._get_free_bytes(root)
+            except OSError:
+                free_before = None
+
             empty_result = shell32.SHEmptyRecycleBinW(None, root, flags)
             if empty_result == 0:
-                deleted_size += recycle_bin_info.i64Size
+                if free_before is None:
+                    deleted_size += recycle_bin_info.i64Size
+                else:
+                    try:
+                        free_after = self._get_free_bytes(root)
+                        deleted_size += max(0, free_after - free_before)
+                    except OSError:
+                        deleted_size += recycle_bin_info.i64Size
             else:
                 self.print_status(
                     f"Could not empty Recycle Bin on {root} "

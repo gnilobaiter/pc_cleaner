@@ -79,8 +79,8 @@ def test_matching_entries_only_returns_existing_directories(tmp_path):
     assert distinguished[0][0] == "IDE Cache (Product2026.2)"
 
 
-def test_version_is_v1_2_0():
-    assert config.VERSION == "v1.2.0"
+def test_version_is_v1_2_1():
+    assert config.VERSION == "v1.2.1"
 
 
 def test_matching_entries_returns_empty_without_base():

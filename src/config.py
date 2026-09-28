@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Tuple
 
 # This version is used by GitHub Actions and the CLI.
-VERSION = "v1.2.0"
+VERSION = "v1.2.1"
 
 CleanupEntry = Tuple[str, str, str, bool]
 

@@ -24,8 +24,10 @@ def test_clear_folder_deletes_contents_and_returns_size(tmp_path, monkeypatch):
     nested.mkdir()
     (nested / "item.bin").write_bytes(b"12345")
     monkeypatch.setattr("src.cleaner.has_access", lambda _: True)
+    cleaner = Cleaner()
+    monkeypatch.setattr(cleaner, "_get_free_bytes", Mock(side_effect=[1_000_000, 1_000_008]))
 
-    deleted = Cleaner().clear_folder(root, "Cache")
+    deleted = cleaner.clear_folder(root, "Cache")
 
     assert deleted == 8
     assert list(root.iterdir()) == []
@@ -40,6 +42,139 @@ def test_clear_folder_dry_run_preserves_contents(tmp_path, monkeypatch):
 
     assert deleted == 3
     assert file_path.exists()
+
+
+def test_clear_folder_falls_back_to_estimate_when_free_space_probe_fails_before(
+    tmp_path, monkeypatch
+):
+    root = tmp_path / "cache"
+    root.mkdir()
+    (root / "file.bin").write_bytes(b"abc")
+    monkeypatch.setattr("src.cleaner.has_access", lambda _: True)
+    cleaner = Cleaner()
+    monkeypatch.setattr(cleaner, "_get_free_bytes", Mock(side_effect=OSError("busy")))
+
+    deleted = cleaner.clear_folder(root, "Cache")
+
+    assert deleted == 3
+    assert list(root.iterdir()) == []
+
+
+def test_clear_folder_falls_back_to_estimate_when_free_space_probe_fails_after(
+    tmp_path, monkeypatch
+):
+    root = tmp_path / "cache"
+    root.mkdir()
+    (root / "file.bin").write_bytes(b"abcde")
+    monkeypatch.setattr("src.cleaner.has_access", lambda _: True)
+    cleaner = Cleaner()
+    monkeypatch.setattr(
+        cleaner, "_get_free_bytes", Mock(side_effect=[1_000_000, OSError("busy")])
+    )
+
+    deleted = cleaner.clear_folder(root, "Cache")
+
+    assert deleted == 5
+    assert list(root.iterdir()) == []
+
+
+def test_dry_run_clear_folder_counts_directory_size(monkeypatch):
+    folder = Mock()
+    item = Mock()
+    folder.exists.return_value = True
+    folder.iterdir.return_value = [item]
+    item.is_file.return_value = False
+    item.is_symlink.return_value = False
+    item.is_dir.return_value = True
+    cleaner = Cleaner(dry_run=True)
+    rmtree_mock = Mock()
+    monkeypatch.setattr("src.cleaner.is_trusted_cleanup_path", lambda *_: True)
+    monkeypatch.setattr("src.cleaner.has_access", lambda *_: True)
+    monkeypatch.setattr(cleaner, "_is_reparse_point", lambda *_: False)
+    monkeypatch.setattr(cleaner, "get_directory_size", lambda *_: 50)
+    monkeypatch.setattr("src.cleaner.shutil.rmtree", rmtree_mock)
+
+    assert cleaner.clear_folder(folder, "Cache") == 50
+    rmtree_mock.assert_not_called()
+
+
+def test_dry_run_clear_folder_counts_reparse_point_size(monkeypatch):
+    folder = Mock()
+    item = Mock()
+    folder.exists.return_value = True
+    folder.iterdir.return_value = [item]
+    item.lstat.return_value = SimpleNamespace(st_size=7)
+    cleaner = Cleaner(dry_run=True)
+    monkeypatch.setattr("src.cleaner.is_trusted_cleanup_path", lambda *_: True)
+    monkeypatch.setattr("src.cleaner.has_access", lambda *_: True)
+    monkeypatch.setattr(cleaner, "_is_reparse_point", lambda path: path is item)
+
+    assert cleaner.clear_folder(folder, "Cache") == 7
+    item.unlink.assert_not_called()
+
+
+def test_dry_run_clear_folder_ignores_reparse_lstat_failure(monkeypatch):
+    folder = Mock()
+    item = Mock()
+    folder.exists.return_value = True
+    folder.iterdir.return_value = [item]
+    item.lstat.side_effect = OSError("gone")
+    cleaner = Cleaner(dry_run=True)
+    monkeypatch.setattr("src.cleaner.is_trusted_cleanup_path", lambda *_: True)
+    monkeypatch.setattr("src.cleaner.has_access", lambda *_: True)
+    monkeypatch.setattr(cleaner, "_is_reparse_point", lambda path: path is item)
+
+    assert cleaner.clear_folder(folder, "Cache") == 0
+
+
+def test_dry_run_clear_folder_ignores_permission_errors_and_reports_other_errors(
+    monkeypatch,
+):
+    folder = Mock()
+    denied_item = Mock()
+    broken_item = Mock()
+    folder.exists.return_value = True
+    folder.iterdir.return_value = [denied_item, broken_item]
+    cleaner = Cleaner(dry_run=True)
+    status_mock = Mock()
+    monkeypatch.setattr("src.cleaner.is_trusted_cleanup_path", lambda *_: True)
+    monkeypatch.setattr("src.cleaner.has_access", lambda *_: True)
+    monkeypatch.setattr(cleaner, "_is_reparse_point", lambda *_: False)
+    denied_item.is_file.side_effect = PermissionError("denied")
+    broken_item.is_file.side_effect = RuntimeError("broken")
+    monkeypatch.setattr(cleaner, "print_status", status_mock)
+
+    assert cleaner.clear_folder(folder, "Cache") == 0
+    assert any(
+        "Error processing" in call.args[0] for call in status_mock.call_args_list
+    )
+
+
+def test_dry_run_clear_folder_reports_directory_listing_failure(monkeypatch):
+    folder = Mock()
+    folder.exists.return_value = True
+    folder.iterdir.side_effect = OSError("broken")
+    cleaner = Cleaner(dry_run=True)
+    status_mock = Mock()
+    monkeypatch.setattr("src.cleaner.is_trusted_cleanup_path", lambda *_: True)
+    monkeypatch.setattr("src.cleaner.has_access", lambda *_: True)
+    monkeypatch.setattr(cleaner, "_is_reparse_point", lambda *_: False)
+    monkeypatch.setattr(cleaner, "print_status", status_mock)
+
+    assert cleaner.clear_folder(folder, "Cache") == 0
+    assert "Failed to process" in status_mock.call_args.args[0]
+
+
+def test_get_free_bytes_returns_real_value_for_existing_drive():
+    free_bytes = Cleaner._get_free_bytes(Path("C:\\"))
+
+    assert isinstance(free_bytes, int)
+    assert free_bytes >= 0
+
+
+def test_get_free_bytes_raises_for_invalid_path():
+    with pytest.raises(OSError):
+        Cleaner._get_free_bytes(Path("Q:\\definitely-not-a-real-drive-xyz\\"))
 
 
 def test_clear_folder_skips_inaccessible_or_missing_folder(tmp_path, monkeypatch):
@@ -151,18 +286,6 @@ def test_directory_junction_is_quietly_left_in_place():
     path.unlink.assert_not_called()
 
 
-def test_safe_reparse_point_is_preserved_during_dry_run():
-    path = Mock()
-    path.lstat.return_value = SimpleNamespace(
-        st_reparse_tag=IO_REPARSE_TAG_AF_UNIX,
-        st_mode=0,
-        st_size=5,
-    )
-
-    assert Cleaner(dry_run=True)._remove_safe_reparse_point(path) == 5
-    path.unlink.assert_not_called()
-
-
 def test_clear_folder_does_not_log_unsupported_reparse_points(monkeypatch):
     folder = Mock()
     item = Mock()
@@ -174,6 +297,7 @@ def test_clear_folder_does_not_log_unsupported_reparse_points(monkeypatch):
     monkeypatch.setattr("src.cleaner.has_access", lambda *_: True)
     monkeypatch.setattr(cleaner, "_is_reparse_point", lambda path: path is item)
     monkeypatch.setattr(cleaner, "_remove_safe_reparse_point", lambda *_: None)
+    monkeypatch.setattr(cleaner, "_get_free_bytes", Mock(return_value=0))
     monkeypatch.setattr(cleaner, "print_status", status_mock)
 
     assert cleaner.clear_folder(folder, "Cache") == 0
@@ -190,6 +314,7 @@ def test_clear_folder_counts_removed_safe_reparse_point(monkeypatch):
     monkeypatch.setattr("src.cleaner.has_access", lambda *_: True)
     monkeypatch.setattr(cleaner, "_is_reparse_point", lambda path: path is item)
     monkeypatch.setattr(cleaner, "_remove_safe_reparse_point", lambda *_: 23)
+    monkeypatch.setattr(cleaner, "_get_free_bytes", Mock(side_effect=OSError("no volume")))
 
     assert cleaner.clear_folder(folder, "Cache") == 23
 
@@ -205,6 +330,7 @@ def test_clear_folder_ignores_permission_errors_and_reports_other_errors(monkeyp
     monkeypatch.setattr("src.cleaner.is_trusted_cleanup_path", lambda *_: True)
     monkeypatch.setattr("src.cleaner.has_access", lambda *_: True)
     monkeypatch.setattr(cleaner, "_is_reparse_point", lambda *_: False)
+    monkeypatch.setattr(cleaner, "_get_free_bytes", Mock(return_value=0))
     denied_item.is_file.side_effect = PermissionError("denied")
     broken_item.is_file.side_effect = RuntimeError("broken")
     monkeypatch.setattr(cleaner, "print_status", status_mock)
@@ -224,6 +350,7 @@ def test_clear_folder_reports_directory_listing_failure(monkeypatch):
     monkeypatch.setattr("src.cleaner.is_trusted_cleanup_path", lambda *_: True)
     monkeypatch.setattr("src.cleaner.has_access", lambda *_: True)
     monkeypatch.setattr(cleaner, "_is_reparse_point", lambda *_: False)
+    monkeypatch.setattr(cleaner, "_get_free_bytes", Mock(return_value=0))
     monkeypatch.setattr(cleaner, "print_status", status_mock)
 
     assert cleaner.clear_folder(folder, "Cache") == 0
@@ -252,36 +379,11 @@ def test_clear_folder_rechecks_directory_before_recursive_delete(monkeypatch):
     monkeypatch.setattr("src.cleaner.is_trusted_cleanup_path", lambda *_: True)
     monkeypatch.setattr("src.cleaner.has_access", lambda *_: True)
     monkeypatch.setattr(cleaner, "_is_reparse_point", becomes_reparse)
-    monkeypatch.setattr(cleaner, "get_directory_size", lambda *_: 100)
+    monkeypatch.setattr(cleaner, "_get_free_bytes", Mock(return_value=0))
     monkeypatch.setattr("src.cleaner.shutil.rmtree", rmtree_mock)
 
     assert cleaner.clear_folder(folder, "Cache") == 0
     rmtree_mock.assert_not_called()
-
-
-def test_clear_folder_counts_files_removed_before_directory_failure(monkeypatch):
-    folder = Mock()
-    item = Mock()
-    folder.exists.return_value = True
-    folder.iterdir.return_value = [item]
-    item.is_file.return_value = False
-    item.is_symlink.return_value = False
-    item.is_dir.return_value = True
-    item.exists.return_value = True
-    cleaner = Cleaner()
-    status_mock = Mock()
-    sizes = iter((100, 40))
-    monkeypatch.setattr("src.cleaner.is_trusted_cleanup_path", lambda *_: True)
-    monkeypatch.setattr("src.cleaner.has_access", lambda *_: True)
-    monkeypatch.setattr(cleaner, "_is_reparse_point", lambda *_: False)
-    monkeypatch.setattr(cleaner, "get_directory_size", lambda *_: next(sizes))
-    monkeypatch.setattr(
-        "src.cleaner.shutil.rmtree", Mock(side_effect=PermissionError("locked"))
-    )
-    monkeypatch.setattr(cleaner, "print_status", status_mock)
-
-    assert cleaner.clear_folder(folder, "Cache") == 60
-    status_mock.assert_not_called()
 
 
 def test_remove_safe_reparse_point_ignores_lstat_failure():
@@ -336,6 +438,11 @@ def test_recycle_bin_cleans_each_local_drive_and_reports_total(monkeypatch):
     cleaner = Cleaner()
     monkeypatch.setattr(cleaner, "_shell32", lambda: shell32)
     monkeypatch.setattr(cleaner, "get_local_drive_roots", lambda: ["C:\\", "D:\\"])
+    monkeypatch.setattr(
+        cleaner,
+        "_get_free_bytes",
+        Mock(side_effect=[500_000, 504_096, 900_000, 902_048]),
+    )
 
     assert cleaner.clear_recycle_bin() == 6144
     flags = SHERB_NOCONFIRMATION | SHERB_NOPROGRESSUI | SHERB_NOSOUND
@@ -378,6 +485,9 @@ def test_recycle_bin_continues_after_per_drive_failures(monkeypatch):
     monkeypatch.setattr(cleaner, "_shell32", lambda: shell32)
     monkeypatch.setattr(
         cleaner, "get_local_drive_roots", lambda: ["C:\\", "D:\\", "E:\\"]
+    )
+    monkeypatch.setattr(
+        cleaner, "_get_free_bytes", Mock(side_effect=[500_000, 504_096, 900_000])
     )
     monkeypatch.setattr(cleaner, "print_status", status_mock)
 
